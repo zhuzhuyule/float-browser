@@ -1,5 +1,5 @@
 
-import { PhysicalPosition, WebviewWindow, appWindow } from '@tauri-apps/api/window';
+import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow } from '@tauri-apps/api/window';
 
 import { Box, Button } from "@suid/material";
 
@@ -28,19 +28,24 @@ export function Main() {
           const key = `browser_${Object.keys(browsers()).length}`
           setBrowsers({...browsers(), [key]: true})
 
-          const webviewBar = new WebviewWindow(`${key}_bar`, { url: '/',width:800,height:70,decorations:false, alwaysOnTop: true });
-          const webview = new WebviewWindow(key, { url: '/',width:800,height:800, decorations:false, alwaysOnTop: true});
+          const webviewBar = new WebviewWindow(`${key}_bar`, { url: '/',width:800,height:70,decorations:false, alwaysOnTop: true, resizable: false, minimizable: false, maximizable: false, hiddenTitle: true, contentProtected: true});
+          const webview = new WebviewWindow(key, { url: '/',width:800,height:800, decorations:true, alwaysOnTop: true, hiddenTitle: true});
           
           webviewBar.once(TauriEvent.WINDOW_CREATED, async function () {
             const pos = await webviewBar.outerPosition()
             const factor = await appWindow.scaleFactor()
             webview.setPosition(new PhysicalPosition(pos.x, pos.y + 70 * factor))
           });
-          webviewBar.once(TauriEvent.WINDOW_DESTROYED, function() {webview.close()});
 
-          webviewBar.onMoved(async function(pos) {
+          webview.onCloseRequested( function() {webviewBar.close()});
+          webview.onMoved(async function(pos) {
             const factor = await appWindow.scaleFactor()
-            webview.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y + 70 * factor))
+            webviewBar.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y - 70 * factor))
+          });
+
+          webview.onResized(async function(size) {
+            const factor = await appWindow.scaleFactor()
+            webviewBar.setSize(new PhysicalSize(size.payload.width, 70*factor))
           });
       }}>
         <AddIcon fontSize='large' />
