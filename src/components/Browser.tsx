@@ -2,9 +2,9 @@ import { createSignal } from "solid-js";
 
 import { Box, Button, IconButton, TextField } from "@suid/material";
 import { PhysicalSize, WebviewWindow, appWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/tauri';
 
 export  function Browser() {
-  const [url, setUrl] = createSignal("about:blank");
   const [value, setValue] = createSignal("");
 
   const [isTop, setIsTop] = createSignal(true);
@@ -25,7 +25,9 @@ export  function Browser() {
         alignItems: "center",
       }}>
         <TextField sx={{flex: 1}} size="small" value={value()} onChange={(e) => setValue(e.target.value)} />
-        <Button onClick={() => setUrl(value())} >Go</Button>
+        <Button onClick={() => {
+            invoke('navigate_url', {url: value(), id: appWindow.label.replace(/_bar/,'')})
+        }} >Go</Button>
         <IconButton size='small' onClick={async () => {
             const browserWin = WebviewWindow.getByLabel(appWindow.label.replace(/_bar/,''))
             if (browserWin) {
@@ -42,7 +44,6 @@ export  function Browser() {
               }
               setIsTop(!isTop());
             }
-            
           }} sx={{color: 'red'}}>
             <img src="https://api.iconify.design/majesticons:pin.svg" rel="external nofollow"  alt="pin" />
           </IconButton>
