@@ -37,6 +37,11 @@ export function Main() {
             webview.setPosition(new PhysicalPosition(pos.x, pos.y + 70 * factor))
           });
           webviewBar.once(TauriEvent.WINDOW_DESTROYED, function() {webview.close()});
+
+          webviewBar.onMoved(async function(pos) {
+            const factor = await appWindow.scaleFactor()
+            webview.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y + 70 * factor))
+          });
       }}>
         <AddIcon fontSize='large' />
       </Button>
