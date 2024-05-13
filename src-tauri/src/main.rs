@@ -8,6 +8,7 @@ use tauri::Manager;
 struct Payload {
     label: String,
     url: String,
+    cmd: String,
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -17,6 +18,22 @@ fn navigate_url(window: tauri::Window, id: String, url: String) {
     browser
         .eval(&format!(r#"window.location.href="{}""#, url))
         .expect("navigate failed");
+}
+
+#[tauri::command]
+fn browser_reload(window: tauri::Window, id: String) {
+    let browser = window.get_window(id.as_str()).unwrap();
+    browser
+        .eval(&format!(r#"location.reload()"#))
+        .expect("navigate failed");
+}
+
+#[tauri::command]
+fn browser_back(window: tauri::Window, id: String) {
+    let browser = window.get_window(id.as_str()).unwrap();
+    browser
+        .eval(&format!(r#"history.back()"#))
+        .expect("back failed");
 }
 
 fn inject_router_watch(window: tauri::Window) {
@@ -41,13 +58,17 @@ fn inject_router_watch(window: tauri::Window) {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![navigate_url])
+        .invoke_handler(tauri::generate_handler![
+            browser_reload,
+            browser_back,
+            navigate_url
+        ])
         .on_page_load(|window, payload| {
             let label = window.label().to_string();
             let url = payload.url().to_string();
             if label == "main" {
             } else if label.starts_with("browser") {
-                if label.ends_with("bar") && !url.starts_with("{") {
+                if !label.ends_with("bar") {
                     inject_router_watch(window.clone());
                     window.open_devtools();
                 }
@@ -56,7 +77,12 @@ fn main() {
                         "webview-loaded",
                         Payload {
                             label: window.label().to_string(),
-                            url: payload.url().to_string(),
+                            url: window.url().to_string(),
+                            cmd: if let true = url.starts_with("{") {
+                                url
+                            } else {
+                                "".to_string()
+                            },
                         },
                     )
                     .unwrap();
