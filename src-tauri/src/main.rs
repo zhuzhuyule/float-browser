@@ -68,34 +68,39 @@ fn main() {
             let url = payload.url().to_string();
             if label == "main" {
             } else if label.starts_with("browser") {
-                if !label.ends_with("bar") {
-                    inject_router_watch(window.clone());
-                    window.open_devtools();
-                }
-                window
-                    .emit_all(
-                        "webview-loaded",
-                        Payload {
-                            label: window.label().to_string(),
-                            url: window.url().to_string(),
-                            cmd: if let true = url.starts_with("{") {
-                                url
-                            } else {
-                                "".to_string()
+                if label.ends_with("bar") {
+                    window.listen("contextmenu", move |_event| {
+                        // 阻止右键菜单事件的默认行为
+                    });
+                } else {
+                    let browser_win = window.clone();
+                    inject_router_watch(browser_win.clone());
+                    browser_win
+                        .emit_to(
+                            format!("{}_bar", label).as_str(),
+                            "webview-loaded",
+                            Payload {
+                                label: label,
+                                url: browser_win.url().to_string(),
+                                cmd: if let true = url.starts_with("{") {
+                                    url
+                                } else {
+                                    "".to_string()
+                                },
                             },
-                        },
-                    )
-                    .unwrap();
+                        )
+                        .unwrap();
+                }
             }
         })
-        .setup(|app| {
-            #[cfg(debug_assertions)] // only include this code on debug builds
-            {
-                let window = app.get_window("main").unwrap();
-                window.open_devtools();
-            }
-            Ok(())
-        })
+        // .setup(|app| {
+        //     // #[cfg(debug_assertions)] // only include this code on debug builds
+        //     // {
+        //     //     let window = app.get_window("main").unwrap();
+        //     //     window.open_devtools();
+        //     // }
+        //     // Ok(())
+        // })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

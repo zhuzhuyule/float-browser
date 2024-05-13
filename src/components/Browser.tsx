@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 
 import { Box, IconButton, Input } from "@suid/material";
 import { listen } from '@tauri-apps/api/event';
@@ -8,7 +8,7 @@ import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow, appWindow as 
 const DRAG_ICON = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M7.375 3.67c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .646.56 1.17 1.25 1.17s1.25-.524 1.25-1.17m0 8.66c0-.646-.56-1.17-1.25-1.17s-1.25.524-1.25 1.17c0 .645.56 1.17 1.25 1.17s1.25-.525 1.25-1.17m-1.25-5.5c.69 0 1.25.525 1.25 1.17c0 .645-.56 1.17-1.25 1.17S4.875 8.645 4.875 8c0-.645.56-1.17 1.25-1.17m5-3.16c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .646.56 1.17 1.25 1.17s1.25-.524 1.25-1.17m-1.25 7.49c.69 0 1.25.524 1.25 1.17c0 .645-.56 1.17-1.25 1.17s-1.25-.525-1.25-1.17c0-.646.56-1.17 1.25-1.17M11.125 8c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .645.56 1.17 1.25 1.17s1.25-.525 1.25-1.17'/%3E%3C/svg%3E")`
 
 export  function Browser() {
-  const [value, setValue] = createSignal("");
+  const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
 
   const [isExpand, setIsExpand] = createSignal(true);
 
@@ -20,6 +20,8 @@ export  function Browser() {
   appWindow.onCloseRequested(async () => {
     (await ls)()
   })
+
+  onMount(() => {    navigate()  })
 
   return (
     <Box sx={{
@@ -87,6 +89,7 @@ export  function Browser() {
   );
 
   function navigate() {
+    localStorage.setItem('browser_url', value());
     invoke('navigate_url', {url: value(), id: browserBar.label.replace(/_bar/,'')})
   }
 }
