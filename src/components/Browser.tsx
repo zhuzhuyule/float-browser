@@ -8,6 +8,9 @@ import KeyboardDoubleArrowUpIcon from '@suid/icons-material/KeyboardDoubleArrowU
 import { Box, IconButton, Input } from "@suid/material";
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
+import { platform } from '@tauri-apps/api/os';
+let platformName = await platform();
+
 import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 
 export  function Browser() {
@@ -56,6 +59,15 @@ export  function Browser() {
       backgroundColor: "#e9e9e9",
       pl: '4px'
     }}
+      onKeyPress={(e) => {
+        if (e.shiftKey || e.altKey) {
+          return
+        }
+        const cmdKey = platformName === 'darwin' ? e.metaKey : e.ctrlKey;
+        if (cmdKey && e.key === 'r') {
+          handleRefresh();
+        }
+      }}
       onMouseEnter={handleBrowserFocusedAndFirstMouseEnter}
     >
       {isExpand() &&      
