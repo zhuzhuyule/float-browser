@@ -10,7 +10,6 @@ import { createSignal } from 'solid-js';
   
 
 export function Main() {
-
   const [browsers, setBrowsers] = createSignal({});
 
   return (
@@ -23,12 +22,14 @@ export function Main() {
         width: 128,
         height: 128,
       },
-    }}>
+      
+    }}
+    >
       <Button variant="outlined" onClick={async () => {
           const key = `browser_${Object.keys(browsers()).length}`
           setBrowsers({...browsers(), [key]: true})
 
-          const browserBar = new WebviewWindow(`${key}_bar`, { url: '/',width:800,height:40,decorations:false, alwaysOnTop: true, resizable: false, minimizable: false, maximizable: false, hiddenTitle: true, contentProtected: true});
+          const browserBar = new WebviewWindow(`${key}_bar`, { url: '/',width:800,height:40,decorations:false, alwaysOnTop: true, resizable: false, minimizable: false, maximizable: false, hiddenTitle: true, contentProtected: true });
           const browserWin = new WebviewWindow(key, { url: '/',width:800,height:800, decorations:true, alwaysOnTop: true, hiddenTitle: true});
           
           browserBar.once(TauriEvent.WINDOW_CREATED, async function () {
@@ -46,6 +47,7 @@ export function Main() {
               browserWin.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y + 40 * factor))
             }
           });
+
           browserWin.onMoved(async function(pos) {
             const isVisible =await  browserWin.isVisible()
             if (isVisible) {
