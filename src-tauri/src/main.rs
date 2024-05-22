@@ -15,25 +15,28 @@ struct Payload {
 #[tauri::command]
 fn navigate_url(window: tauri::Window, id: String, url: String) {
     let browser = window.get_window(id.as_str()).unwrap();
+
     browser
         .eval(&format!(r#"window.location.href="{}""#, url))
         .expect("navigate failed");
 }
 
 #[tauri::command]
-fn browser_reload(window: tauri::Window, id: String) {
+fn browser_directive(window: tauri::Window, id: String, command: String) {
     let browser = window.get_window(id.as_str()).unwrap();
-    browser
-        .eval(&format!(r#"location.reload()"#))
-        .expect("navigate failed");
-}
 
-#[tauri::command]
-fn browser_back(window: tauri::Window, id: String) {
-    let browser = window.get_window(id.as_str()).unwrap();
-    browser
-        .eval(&format!(r#"history.back()"#))
-        .expect("back failed");
+    let command_str = match command.as_str() {
+        "reload" => r#"location.reload()"#,
+        "back" => r#"history.back()"#,
+        "forward" => r#"history.forward()"#,
+        _ => "",
+    };
+
+    if !command_str.is_empty() {
+        browser
+            .eval(&format!("{}", command_str))
+            .expect("navigate failed");
+    }
 }
 
 fn inject_router_watch(window: tauri::Window) {
@@ -58,11 +61,7 @@ fn inject_router_watch(window: tauri::Window) {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            browser_reload,
-            browser_back,
-            navigate_url
-        ])
+        .invoke_handler(tauri::generate_handler![browser_directive, navigate_url])
         .on_page_load(|window, payload| {
             let label = window.label().to_string();
             let url = payload.url().to_string();

@@ -28,14 +28,20 @@ export function Browser() {
   const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
   const [isExpand, setIsExpand] = createSignal(true);
 
-  const ls = listen<{ id: string; url: string }>('webview-loaded', e => {
+  const ls: Promise<() => void>[] = []
+   ls.push(listen<{ id: string; url: string }>('webview-loaded', e => {
     if (value() !== e.payload.url) {
       setValue(e.payload.url);
     }
-  });
-  appWindow.onCloseRequested(async () => {
+  }));
+
+  ls.push(listen<{ id: string; }>('toggle-expand', _e => {
+    handleExpand()
+  }));
+
+  appWindow.onCloseRequested(() => {
     clearTimeout(timeoutHandle);
-    (await ls)();
+    ls.forEach(async l => (await l)());
   });
 
   appWindow.onFocusChanged(({ payload: focused }) => {
@@ -73,8 +79,18 @@ export function Browser() {
           return;
         }
         const cmdKey = platformName === 'darwin' ? e.metaKey : e.ctrlKey;
-        if (cmdKey && e.key === 'r') {
-          handleRefresh();
+        if (cmdKey) {
+          switch (e.key) {
+            case 'r':
+              handleRefresh();
+              break;
+            case '[':
+              handleBack();
+              break;
+            case ']':
+              handleForward();
+              break;
+          }
         }
       }}
       onMouseEnter={handleBrowserFocusedAndFirstMouseEnter}
@@ -150,11 +166,19 @@ export function Browser() {
   }
 
   function handleRefresh() {
-    invoke('browser_reload', { id: browserBar.label.replace(/_bar/, '') });
+    browserDirective('reload');
   }
 
   function handleBack() {
-    invoke('browser_back', { id: browserBar.label.replace(/_bar/, '') });
+    browserDirective('back');
+  }
+
+  function handleForward() {
+    browserDirective('forward');
+  }
+
+  function browserDirective(command: string) {
+    invoke('browser_directive', { id: browserBar.label.replace(/_bar/, ''), command});
   }
 
   async function handleExpand() {
