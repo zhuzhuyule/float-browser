@@ -1,6 +1,7 @@
 import { TauriEvent } from '@tauri-apps/api/event';
 import { PhysicalPosition, PhysicalSize, WebviewWindow } from '@tauri-apps/api/window';
 import { createSignal } from 'solid-js';
+import { CONST_BROWSER_HEIGHT } from '../../../constants';
 
 const [browsers, setBrowsers] = createSignal({});
 
@@ -11,10 +12,11 @@ export const createBrowser = () => {
   const browserBar = new WebviewWindow(`${key}_bar`, {
     url: '/',
     width: 800,
-    height: 40,
+    height: 140,
     decorations: false,
     alwaysOnTop: true,
     resizable: false,
+    transparent: true,
     minimizable: false,
     maximizable: false,
     hiddenTitle: true,
@@ -32,9 +34,11 @@ export const createBrowser = () => {
   browserBar.once(TauriEvent.WINDOW_CREATED, async function (e) {
     const pos = await browserBar.outerPosition();
     const factor = await browserBar.scaleFactor();
-    browserWin.setPosition(new PhysicalPosition(pos.x, pos.y + 40 * factor)).then(() => {
-      browserBar.setFocus();
-    });
+    browserWin
+      .setPosition(new PhysicalPosition(pos.x, pos.y + CONST_BROWSER_HEIGHT * factor))
+      .then(() => {
+        browserBar.setFocus();
+      });
   });
 
   browserWin.onCloseRequested(function () {
@@ -45,7 +49,9 @@ export const createBrowser = () => {
     const isVisible = await browserWin.isVisible();
     if (!isVisible) {
       const factor = await browserBar.scaleFactor();
-      browserWin.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y + 40 * factor));
+      browserWin.setPosition(
+        new PhysicalPosition(pos.payload.x, pos.payload.y + CONST_BROWSER_HEIGHT * factor)
+      );
     }
   });
 
@@ -53,12 +59,14 @@ export const createBrowser = () => {
     const isVisible = await browserWin.isVisible();
     if (isVisible) {
       const factor = await browserWin.scaleFactor();
-      browserBar.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y - 40 * factor));
+      browserBar.setPosition(
+        new PhysicalPosition(pos.payload.x, pos.payload.y - CONST_BROWSER_HEIGHT * factor)
+      );
     }
   });
 
   browserWin.onResized(async function (size) {
     const factor = await browserWin.scaleFactor();
-    browserBar.setSize(new PhysicalSize(size.payload.width, 40 * factor));
+    browserBar.setSize(new PhysicalSize(size.payload.width, CONST_BROWSER_HEIGHT * factor));
   });
 };
