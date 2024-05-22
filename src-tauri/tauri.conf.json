@@ -18,6 +18,9 @@
       "os": {
         "all": true
       },
+      "globalShortcut": {
+        "all": true
+      },
       "shell": {
         "all": false,
         "open": true
@@ -25,11 +28,11 @@
     },
     "windows": [
       {
-        "title": "float-browser",
+        "title": "悬浮浏览器",
         "resizable": true,
         "center": true,
-        "width": 600,
-        "height": 400
+        "width": 150,
+        "height": 175
       }
     ],
     "security": {

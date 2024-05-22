@@ -1,6 +1,6 @@
 import { appWindow } from '@tauri-apps/api/window';
-import { Browser } from './components/Browser';
-import { Main } from './components/Main';
+import { Browser } from './components/browser/Browser';
+import { Main } from './components/main/Main';
 
 export default function App() {
   if (appWindow.label === 'main') {

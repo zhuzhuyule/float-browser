@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use serde_json::Result;
+use std::env::consts::OS;
 use tauri::Manager;
 
 // the payload type must implement `Serialize` and `Clone`.
@@ -19,6 +21,16 @@ fn navigate_url(window: tauri::Window, id: String, url: String) {
     browser
         .eval(&format!(r#"window.location.href="{}""#, url))
         .expect("navigate failed");
+}
+
+#[tauri::command]
+fn toggle_devtools(window: tauri::Window, id: String) {
+    let browser = window.get_window(id.as_str()).unwrap();
+    if browser.is_devtools_open() {
+        browser.close_devtools();
+    } else {
+        browser.open_devtools();
+    }
 }
 
 #[tauri::command]
@@ -54,14 +66,78 @@ fn inject_router_watch(window: tauri::Window) {
                     const p=history.pushState;history.pushState=function(){{p.apply(this,arguments);routeChange();}};
                     const r=history.replaceState;history.replaceState=function(){{r.apply(this,arguments);routeChange();}};
                 }};
-                if (!window.__has_initialized) {{ initWatch() }}
-            "#
+
+                function addShortKey() {{
+                    document.addEventListener('keypress', (e) => {{
+                        const cmdKey = '{}' === 'macos' ? e.metaKey : e.ctrlKey;
+
+                        if (e.altKey && cmdKey && (e.code === 'KeyI' || e.code === 'KeyJ')) {{
+                            window.__TAURI_INVOKE__('__initialized',{{url:JSON.stringify({{command: '__open__devtools'}})}});
+                        }}
+
+                        if (e.shiftKey || e.altKey) return;
+                        if (cmdKey) {{
+                            switch (e.code) {{
+                                case 'KeyR':
+                                    location.reload();
+                                    break;
+                                case 'BracketLeft':
+                                    history.back();
+                                    break;
+                                case 'BracketRight':
+                                    history.forward();
+                                    break;
+                            }}
+                        }}
+                    }})
+                }}
+                if (!window.__has_initialized) {{ initWatch(); addShortKey(); }}
+            "#, OS
     )).expect("eval failed");
+}
+
+fn emit_browser_bar(browser_win: tauri::Window, label: String, url: String) {
+    browser_win
+        .emit_to(
+            format!("{}_bar", label).as_str(),
+            "webview-loaded",
+            Payload {
+                label: label,
+                url: browser_win.url().to_string(),
+                cmd: if let true = url.starts_with("{") {
+                    url
+                } else {
+                    "".to_string()
+                },
+            },
+        )
+        .unwrap();
+}
+
+fn browser_command(browser_win: tauri::Window, label: String, command: String) {
+    let result: Result<serde_json::Value> = serde_json::from_str(command.as_str());
+    match result {
+        Ok(json_data) => {
+            if json_data["command"] == "__open__devtools" {
+                toggle_devtools(browser_win, label);
+            } else {
+                emit_browser_bar(browser_win, label, command);
+            }
+        }
+        Err(e) => {
+            println!("Failed to parse JSON: {}", e);
+            return {};
+        }
+    };
 }
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![browser_directive, navigate_url])
+        .invoke_handler(tauri::generate_handler![
+            browser_directive,
+            navigate_url,
+            toggle_devtools
+        ])
         .on_page_load(|window, payload| {
             let label = window.label().to_string();
             let url = payload.url().to_string();
@@ -73,33 +149,15 @@ fn main() {
                     });
                 } else {
                     let browser_win = window.clone();
-                    inject_router_watch(browser_win.clone());
-                    browser_win
-                        .emit_to(
-                            format!("{}_bar", label).as_str(),
-                            "webview-loaded",
-                            Payload {
-                                label: label,
-                                url: browser_win.url().to_string(),
-                                cmd: if let true = url.starts_with("{") {
-                                    url
-                                } else {
-                                    "".to_string()
-                                },
-                            },
-                        )
-                        .unwrap();
+                    if url.starts_with("{") {
+                        browser_command(browser_win, label, url);
+                    } else {
+                        inject_router_watch(browser_win.clone());
+                        emit_browser_bar(browser_win, label, url);
+                    }
                 }
             }
         })
-        // .setup(|app| {
-        //     // #[cfg(debug_assertions)] // only include this code on debug builds
-        //     // {
-        //     //     let window = app.get_window("main").unwrap();
-        //     //     window.open_devtools();
-        //     // }
-        //     // Ok(())
-        // })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

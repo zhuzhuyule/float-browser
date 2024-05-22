@@ -9,13 +9,13 @@ import { Box, IconButton, Input } from '@suid/material';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
 import { platform } from '@tauri-apps/api/os';
+
 let platformName = await platform();
 
 import {
   PhysicalPosition,
   PhysicalSize,
   WebviewWindow,
-  appWindow,
   appWindow as browserBar
 } from '@tauri-apps/api/window';
 
@@ -28,23 +28,35 @@ export function Browser() {
   const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
   const [isExpand, setIsExpand] = createSignal(true);
 
-  const ls: Promise<() => void>[] = []
-   ls.push(listen<{ id: string; url: string }>('webview-loaded', e => {
-    if (value() !== e.payload.url) {
-      setValue(e.payload.url);
-    }
-  }));
+  const ls: Promise<() => void>[] = [];
+  ls.push(
+    listen<{ id: string; url: string }>('webview-loaded', e => {
+      if (value() !== e.payload.url) {
+        setValue(e.payload.url);
+        browserBar.isFocused().then(focused => {
+          if (focused && document.activeElement?.id === 'url-input') {
+            setTimeout(() => {
+              const input = document.getElementById('url-input')! as HTMLInputElement;
+              input.select();
+            }, 100);
+          }
+        });
+      }
+    })
+  );
 
-  ls.push(listen<{ id: string; }>('toggle-expand', _e => {
-    handleExpand()
-  }));
+  ls.push(
+    listen<{ id: string }>('toggle-expand', _e => {
+      handleExpand();
+    })
+  );
 
-  appWindow.onCloseRequested(() => {
+  browserBar.onCloseRequested(() => {
     clearTimeout(timeoutHandle);
     ls.forEach(async l => (await l)());
   });
 
-  appWindow.onFocusChanged(({ payload: focused }) => {
+  browserBar.onFocusChanged(({ payload: focused }) => {
     if (focused && lastFocusedTime + 1000 < Date.now()) {
       justFocused = true;
     } else {
@@ -53,8 +65,11 @@ export function Browser() {
     }
   });
 
+  onMount(() => navigate());
   onMount(() => {
-    navigate();
+    const input = document.getElementById('url-input')! as HTMLInputElement;
+    input.focus();
+    setTimeout(() => input.select(), 100);
   });
 
   return (
@@ -75,19 +90,25 @@ export function Browser() {
         pl: '4px'
       }}
       onKeyPress={e => {
-        if (e.shiftKey || e.altKey) {
-          return;
-        }
         const cmdKey = platformName === 'darwin' ? e.metaKey : e.ctrlKey;
+        if (e.altKey && cmdKey && (e.code === 'KeyI' || e.code === 'KeyJ')) {
+          const id = browserBar.label.replace(/_bar/, '');
+          invoke('toggle_devtools', { id });
+        }
+
+        if (e.shiftKey || e.altKey) return;
         if (cmdKey) {
-          switch (e.key) {
-            case 'r':
+          switch (e.code) {
+            case 'KeyW':
+              handleClose();
+              break;
+            case 'KeyR':
               handleRefresh();
               break;
-            case '[':
+            case 'BracketLeft':
               handleBack();
               break;
-            case ']':
+            case 'BracketRight':
               handleForward();
               break;
           }
@@ -110,6 +131,7 @@ export function Browser() {
         </>
       )}
       <Input
+        id="url-input"
         sx={{
           flex: 1,
           '&:before,&:after': { border: 'none !important' },
@@ -165,6 +187,11 @@ export function Browser() {
     invoke('navigate_url', { url: value(), id: browserBar.label.replace(/_bar/, '') });
   }
 
+  function handleClose() {
+    WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))?.close();
+    browserBar.close();
+  }
+
   function handleRefresh() {
     browserDirective('reload');
   }
@@ -178,7 +205,7 @@ export function Browser() {
   }
 
   function browserDirective(command: string) {
-    invoke('browser_directive', { id: browserBar.label.replace(/_bar/, ''), command});
+    invoke('browser_directive', { id: browserBar.label.replace(/_bar/, ''), command });
   }
 
   async function handleExpand() {
