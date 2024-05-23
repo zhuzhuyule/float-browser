@@ -5,6 +5,7 @@ use serde_json::Result;
 use std::env::consts::OS;
 use tauri::Manager;
 
+mod preload;
 // the payload type must implement `Serialize` and `Clone`.
 #[derive(Clone, serde::Serialize)]
 struct Payload {
@@ -82,15 +83,15 @@ fn inject_router_watch(window: tauri::Window) {
 
                 function cacheRequest(){{
                     (function() {{
-                        let useCache = JSON.parse(localStorage.getItem('useCache') || 'false'); // 从 localStorage 加载 useCache
-                        const cacheList = new Set(JSON.parse(localStorage.getItem('cacheList') || '[]')); // 从 localStorage 加载 cacheList
-                        const requestCache = new Map(JSON.parse(localStorage.getItem('requestCache') || '[]')); // 从 localStorage 加载 requestCache
+                        let useCache = JSON.parse(localStorage.getItem('useCache') || 'false'); 
+                        const cacheList = new Set(JSON.parse(localStorage.getItem('cacheList') || '[]')); 
+                        const requestCache = new Map(JSON.parse(localStorage.getItem('requestCache') || '[]')); 
                       
                         const originalFetch = window.fetch;
                         window.fetch = async function(...args) {{
                             const url = args[0];
-                            const type = args[1]?.method || 'GET'; // 获取请求类型，默认为 GET
-                            const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
+                            const type = args[1]?.method || 'GET'; 
+                            const cacheKey = location.href + '|||' + url; 
                             window.__TAURI_INVOKE__('__initialized', {{ url: JSON.stringify({{ command: '__request__url', type: type.toUpperCase(), url: url, page: location.href }}) }});
                             if (useCache && cacheList.size === 0 && requestCache.has(cacheKey)) {{
                                 return new Response(requestCache.get(cacheKey));
@@ -151,6 +152,7 @@ fn inject_router_watch(window: tauri::Window) {
                             this.addEventListener('readystatechange', (event) => {{
                                 if (this.readyState === 4 && this.status === 200) {{
                                     requestCache.set(cacheKey, this.responseText);
+                                    console.log('------------------', this);
                                     localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries()))); // 将 requestCache 缓存在 localStorage
                                 }}
                             }});
@@ -277,8 +279,10 @@ fn browser_command(browser_win: tauri::Window, label: String, command: String) {
     };
 }
 
+
 fn main() {
     tauri::Builder::default()
+        .plugin(preload::PreloadPlugin::new())
         .invoke_handler(tauri::generate_handler![
             browser_directive,
             navigate_url,
