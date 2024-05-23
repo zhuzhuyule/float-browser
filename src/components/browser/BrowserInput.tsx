@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
+import { createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 
 import { Box, Input, List, ListItem, ListItemButton, ListItemText } from '@suid/material';
 import { invoke } from '@tauri-apps/api/tauri';
@@ -9,9 +9,10 @@ import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { handleResizeBar } from './actions';
 
 export function BrowserInput({}: {}) {
-  let ref: HTMLElement | undefined;
+  let ref: HTMLInputElement | undefined;
   let lastestUrl = '';
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
+  const [selectIndex, setSelectIndex] = createSignal(0);
 
   const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
   const [history, setHistory] = createSignal<string[]>(
@@ -21,14 +22,6 @@ export function BrowserInput({}: {}) {
   const ls = listen<{ id: string; url: string }>('webview-loaded', e => {
     if (value() !== e.payload.url) {
       setValue(e.payload.url);
-      browserBar.isFocused().then(focused => {
-        if (focused && document.activeElement?.id === 'url-input') {
-          setTimeout(() => {
-            const input = document.getElementById('url-input')! as HTMLInputElement;
-            input.select();
-          }, 100);
-        }
-      });
     }
   });
 
@@ -36,7 +29,6 @@ export function BrowserInput({}: {}) {
   onMount(() => {
     const input = document.getElementById('url-input')! as HTMLInputElement;
     input.focus();
-    setTimeout(() => input.select(), 100);
   });
 
   onCleanup(() => ls.then(cb => cb()));
@@ -55,6 +47,19 @@ export function BrowserInput({}: {}) {
   );
 
   const shouldShow = createMemo(() => isShowingSuggesting() && ref && !!list().length);
+
+  const setCursorToEnd = () => {
+    setTimeout(() => {}, 1000);
+  };
+
+  createEffect(() => {
+    const vl = value();
+    const handle = setTimeout(() => {
+      const input = document.getElementById('url-input')! as HTMLInputElement;
+      input.setSelectionRange(vl.length, vl.length);
+    }, 0);
+    onCleanup(() => clearTimeout(handle));
+  });
 
   return (
     <>
@@ -77,13 +82,42 @@ export function BrowserInput({}: {}) {
           setValue(e.target.value);
           handleShowSuggestion(lastestUrl !== e.target.value);
         }}
-        onKeyDown={e => e.key === 'Enter' && navigate(value())}
+        onKeyDown={e => {
+          switch (e.key) {
+            case 'ArrowUp':
+              e.preventDefault();
+              if (selectIndex() === -1) {
+                setSelectIndex(list().length - 1);
+              } else {
+                setSelectIndex(selectIndex() - 1 < 0 ? 0 : selectIndex() - 1);
+              }
+              break;
+            case 'ArrowDown':
+              e.preventDefault();
+              setSelectIndex(selectIndex() + 1 < list().length ? selectIndex() + 1 : selectIndex());
+              break;
+            case 'Escape':
+              e.preventDefault();
+              if (selectIndex() === -1) {
+                handleCloseSuggestion();
+                setValue(lastestUrl);
+                // resetCursor();
+                setCursorToEnd();
+              } else {
+                setSelectIndex(-1);
+              }
+              break;
+            case 'Enter':
+              e.preventDefault();
+              navigate(list()[selectIndex()] || value());
+              handleCloseSuggestion();
+              break;
+          }
+        }}
         onFocus={() => handleShowSuggestion(lastestUrl !== value())}
         onBlur={e => {
           const url = (e.relatedTarget as HTMLElement)?.dataset['item-url'];
-          if (url) {
-            navigate(url);
-          }
+          if (url) navigate(url);
           handleCloseSuggestion();
         }}
       />
@@ -110,9 +144,13 @@ export function BrowserInput({}: {}) {
             }}
             style={{ padding: '1px 0' }}
           >
-            {list().map(url => (
+            {list().map((url, index) => (
               <ListItem disablePadding>
-                <ListItemButton data-item-url={url}>
+                <ListItemButton
+                  id={index === selectIndex() ? 'url-input-selected' : ''}
+                  sx={index === selectIndex() ? { backgroundColor: '#e6f7ff' } : {}}
+                  data-item-url={url}
+                >
                   <ListItemText primary={url} />
                 </ListItemButton>
               </ListItem>
@@ -135,12 +173,20 @@ export function BrowserInput({}: {}) {
     invoke('navigate_url', { url: lastestUrl, id: browserBar.label.replace(/_bar/, '') });
   }
 
+  // function resetCursor() {
+  //   onMount(() => {
+  //     ref!.setSelectionRange(value().length, value().length);
+  //   });
+  // }
+
   function handleCloseSuggestion() {
+    setSelectIndex(-1);
     setIsShowingSuggesting(false);
     handleResizeBar(false);
   }
 
   function handleShowSuggestion(show: boolean) {
+    setSelectIndex(-1);
     setIsShowingSuggesting(show);
     handleResizeBar(show);
   }

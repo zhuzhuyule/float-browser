@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from 'solid-js';
+import { createSignal, onCleanup, onMount } from 'solid-js';
 
 import { platform } from '@tauri-apps/api/os';
 import { invoke } from '@tauri-apps/api/tauri';
@@ -11,7 +11,9 @@ import {
 } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 
-export function addShortCut() {
+export function useShortCut() {
+  const [isExpand, setIsExpand] = createSignal(true);
+
   onMount(() => {
     document.addEventListener('keypress', handleShortCut);
   });
@@ -37,8 +39,17 @@ export function addShortCut() {
         case 'KeyR':
           handleRefresh();
           break;
+        case 'KeyS':
+          handleExpand();
+          break;
         case 'BracketLeft':
           handleBack();
+          break;
+        case 'KeyY':
+          setUseCache(true, []);
+          break;
+        case 'KeyN':
+          setUseCache(false, []);
           break;
         case 'BracketRight':
           handleForward();
@@ -46,6 +57,16 @@ export function addShortCut() {
       }
     }
   }
+
+  function handleExpand() {
+    handleShowBrowser(isExpand());
+    setIsExpand(!isExpand());
+  }
+
+  return {
+    isExpand,
+    handleExpand
+  };
 }
 
 export function handleClose() {
@@ -67,6 +88,15 @@ export function handleForward() {
 
 function browserDirective(command: string) {
   invoke('browser_directive', { id: browserBar.label.replace(/_bar/, ''), command });
+}
+
+function setUseCache(isUse: boolean, list: string[] = []) {
+  console.log('----cache---->', isUse);
+  invoke('use_cache', {
+    id: browserBar.label.replace(/_bar/, ''),
+    open: `${isUse}`,
+    list: JSON.stringify(list)
+  });
 }
 
 export async function handleResizeBar(isExpand: boolean) {

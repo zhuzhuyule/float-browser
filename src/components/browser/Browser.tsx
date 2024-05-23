@@ -11,7 +11,7 @@ import { listen } from '@tauri-apps/api/event';
 import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { BrowserInput } from './BrowserInput';
-import { addShortCut, handleBack, handleRefresh, handleShowBrowser } from './actions';
+import { useShortCut, handleBack, handleRefresh, handleShowBrowser } from './actions';
 
 export function Browser() {
   let justFocused = true;
@@ -19,14 +19,17 @@ export function Browser() {
   let lastFocusedTime = Date.now();
   let timeoutHandle = 0;
 
-  const [isExpand, setIsExpand] = createSignal(true);
-
-  addShortCut();
+  const { isExpand, handleExpand } = useShortCut();
 
   const ls: Promise<() => void>[] = [];
   ls.push(
     listen<{ id: string }>('toggle-expand', _e => {
       handleExpand();
+    })
+  );
+  ls.push(
+    listen<{ cmd: string }>('webview-request', e => {
+      console.log('-------->', JSON.parse(e.payload.cmd));
     })
   );
 
@@ -121,10 +124,5 @@ export function Browser() {
         cb();
       }
     };
-  }
-
-  async function handleExpand() {
-    handleShowBrowser(isExpand());
-    setIsExpand(!isExpand());
   }
 }
