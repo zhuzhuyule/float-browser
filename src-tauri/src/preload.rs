@@ -3,12 +3,13 @@ use std::path::PathBuf;
 
 use tauri::{
     plugin::{Plugin, Result},
-    Invoke, Runtime,
+    AppHandle, Invoke, PageLoadPayload, RunEvent, Runtime, Window,
 };
 
 pub struct PreloadPlugin<R: Runtime> {
     invoke_handler: Box<dyn Fn(Invoke<R>) + Send + Sync>,
     app_dir: PathBuf,
+    is_browser: bool,
 }
 
 impl<R: Runtime> PreloadPlugin<R> {
@@ -16,6 +17,7 @@ impl<R: Runtime> PreloadPlugin<R> {
         Self {
             invoke_handler: Box::new(tauri::generate_handler![]),
             app_dir: PathBuf::new(),
+            is_browser: false,
         }
     }
 }
@@ -31,14 +33,16 @@ impl<R: Runtime> Plugin<R> for PreloadPlugin<R> {
     }
 
     fn initialization_script(&self) -> Option<String> {
-        Some(format!(
-            r#"
-              console.log('inject success other {} {}');
-            "#,
-            OS,
-            self.app_dir.display()
-        ))
+        return Some(include_str!("scripts.js").replacen("{$platform$}", OS, 1));
     }
+
+    fn created(&mut self, window: Window<R>) {
+        self.is_browser = window.label().starts_with("browser");
+    }
+
+    fn on_page_load(&mut self, _window: Window<R>, _payload: PageLoadPayload) {}
+
+    fn on_event(&mut self, _app: &AppHandle<R>, _event: &RunEvent) {}
 
     fn extend_api(&mut self, message: Invoke<R>) {
         (self.invoke_handler)(message)
