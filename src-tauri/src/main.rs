@@ -104,12 +104,16 @@ fn browser_command(browser_win: tauri::Window, label: String, command: String) {
             } else if json_data["command"] == "__request__url" {
                 emit_browser_bar_request(browser_win, label, command);
             } else if json_data["command"] == "__read_content" {
-               
                 browser_win
-                    .eval(&format!(r#"
-                    const event = new CustomEvent("{}", {{ detail: "success log" }});
-                    tauri_eventTarget.dispatchEvent(event); 
-                    "#, json_data["key"]))
+                    .eval(&format!(
+                        r#"
+                        (() => {{
+                            const event = new CustomEvent({}, {{ detail: 'success log' }});
+                            window.__float_browser_event_target.dispatchEvent(event); 
+                        }})()
+                        "#,
+                        json_data["key"]
+                    ))
                     .expect("navigate failed");
             } else {
                 emit_browser_bar(browser_win, label, command);

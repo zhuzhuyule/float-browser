@@ -167,16 +167,12 @@
   }
 
   function readContent() {
-    return new Promise(resolve => {
-      const time = Date.now();
-      const key = `read_content_${time}`;
-      tauri_eventTarget.addEventListener(
-        key,
-        event => {
-          resolve(event.detail);
-        },
-        { once: true }
-      );
+    const time = Date.now();
+    const key = `read_content_${time}`;
+    return new Promise(function (resolve) {
+      __float_browser_event_target.addEventListener(key, event => resolve(event.detail), {
+        once: true
+      });
 
       window.__TAURI_INVOKE__('__initialized', {
         url: JSON.stringify({
@@ -189,10 +185,11 @@
 
   if (/^browser_\d+$/.test(window.__TAURI_METADATA__.__currentWindow.label) && !window.__has_initialized) {
     window.__has_initialized = true;
+    window.__float_browser_event_target = new EventTarget();
+
     initWatch();
     addShortKey();
     cacheRequest();
-    window.tauri_eventTarget = new EventTarget();
     window.readContent = readContent;
   }
 })();
