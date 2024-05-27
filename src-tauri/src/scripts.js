@@ -165,10 +165,34 @@
       }
     });
   }
+
+  function readContent() {
+    return new Promise(resolve => {
+      const time = Date.now();
+      const key = `read_content_${time}`;
+      tauri_eventTarget.addEventListener(
+        key,
+        event => {
+          resolve(event.detail);
+        },
+        { once: true }
+      );
+
+      window.__TAURI_INVOKE__('__initialized', {
+        url: JSON.stringify({
+          command: '__read_content',
+          key
+        })
+      });
+    });
+  }
+
   if (/^browser_\d+$/.test(window.__TAURI_METADATA__.__currentWindow.label) && !window.__has_initialized) {
     window.__has_initialized = true;
     initWatch();
     addShortKey();
     cacheRequest();
+    window.tauri_eventTarget = new EventTarget();
+    window.readContent = readContent;
   }
 })();
