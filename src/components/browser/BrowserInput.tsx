@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
+import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 
 import { Box, Input, List, ListItem, ListItemButton, ListItemText } from '@suid/material';
 import { invoke } from '@tauri-apps/api/tauri';
@@ -10,18 +10,28 @@ import { handleResizeBar } from './actions';
 
 export function BrowserInput({}: {}) {
   let ref: HTMLInputElement | undefined;
+
   let lastestUrl = '';
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
   const [selectIndex, setSelectIndex] = createSignal(0);
 
   const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
-  const [history, setHistory] = createSignal<string[]>(
-    JSON.parse(localStorage.getItem('history_urls') || '[]') || []
-  );
+  const [history, setHistory] = createSignal<string[]>(JSON.parse(localStorage.getItem('history_urls') || '[]') || []);
+
+  let handle = 0;
+  const updateValue = (vl: string) => {
+    setValue(vl);
+    clearTimeout(handle);
+    handle = setTimeout(() => {
+      const input = document.getElementById('url-input')! as HTMLInputElement;
+      input.setSelectionRange(vl.length, vl.length);
+    }, 0);
+  };
+  onCleanup(() => clearTimeout(handle));
 
   const ls = listen<{ id: string; url: string }>('webview-loaded', e => {
     if (value() !== e.payload.url) {
-      setValue(e.payload.url);
+      updateValue(e.payload.url);
     }
   });
 
@@ -47,19 +57,6 @@ export function BrowserInput({}: {}) {
   );
 
   const shouldShow = createMemo(() => isShowingSuggesting() && ref && !!list().length);
-
-  const setCursorToEnd = () => {
-    setTimeout(() => {}, 1000);
-  };
-
-  createEffect(() => {
-    const vl = value();
-    const handle = setTimeout(() => {
-      const input = document.getElementById('url-input')! as HTMLInputElement;
-      input.setSelectionRange(vl.length, vl.length);
-    }, 0);
-    onCleanup(() => clearTimeout(handle));
-  });
 
   return (
     <>
@@ -100,9 +97,7 @@ export function BrowserInput({}: {}) {
               e.preventDefault();
               if (selectIndex() === -1) {
                 handleCloseSuggestion();
-                setValue(lastestUrl);
-                // resetCursor();
-                setCursorToEnd();
+                updateValue(lastestUrl);
               } else {
                 setSelectIndex(-1);
               }
@@ -146,11 +141,7 @@ export function BrowserInput({}: {}) {
           >
             {list().map((url, index) => (
               <ListItem disablePadding>
-                <ListItemButton
-                  id={index === selectIndex() ? 'url-input-selected' : ''}
-                  sx={index === selectIndex() ? { backgroundColor: '#e6f7ff' } : {}}
-                  data-item-url={url}
-                >
+                <ListItemButton id={index === selectIndex() ? 'url-input-selected' : ''} sx={index === selectIndex() ? { backgroundColor: '#e6f7ff' } : {}} data-item-url={url}>
                   <ListItemText primary={url} />
                 </ListItemButton>
               </ListItem>
@@ -166,18 +157,12 @@ export function BrowserInput({}: {}) {
       const newHistory = [url, ...history().filter(v => v !== url)].slice(0, 1000);
       localStorage.setItem('history_urls', JSON.stringify(newHistory));
       setHistory(newHistory);
-      setValue(url);
+      updateValue(url);
     }
     lastestUrl = url || value();
     localStorage.setItem('browser_url', lastestUrl);
     invoke('navigate_url', { url: lastestUrl, id: browserBar.label.replace(/_bar/, '') });
   }
-
-  // function resetCursor() {
-  //   onMount(() => {
-  //     ref!.setSelectionRange(value().length, value().length);
-  //   });
-  // }
 
   function handleCloseSuggestion() {
     setSelectIndex(-1);
