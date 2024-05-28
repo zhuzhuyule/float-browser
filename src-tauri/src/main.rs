@@ -16,16 +16,11 @@ fn main() {
         .on_page_load(|window, payload| {
             let label = window.label().to_string();
             let url = payload.url().to_string();
-            if label == "main" {
-            } else if label.starts_with("browser") {
-                if label.ends_with("bar") {
+            if label.starts_with("browser") & !label.ends_with("bar") {
+                if url.starts_with("{") {
+                    command::browser_command(window.clone(), label, url);
                 } else {
-                    let browser_win = window.clone();
-                    if url.starts_with("{") {
-                        command::browser_command(browser_win, label, url);
-                    } else {
-                        command::emit_browser_bar(browser_win, label, url);
-                    }
+                    command::emit_browser_bar(window.clone(), label);
                 }
             }
         })

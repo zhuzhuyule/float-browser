@@ -6,7 +6,7 @@ use tauri::Manager;
 struct Payload {
     label: String,
     url: String,
-    cmd: String,
+    cmd: Option<String>,
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -59,7 +59,7 @@ pub fn browser_directive(window: tauri::Window, id: String, command: String) {
     }
 }
 
-pub fn emit_browser_bar(browser_win: tauri::Window, label: String, url: String) {
+pub fn emit_browser_bar(browser_win: tauri::Window, label: String) {
     browser_win
         .emit_to(
             format!("{}_bar", label).as_str(),
@@ -67,17 +67,13 @@ pub fn emit_browser_bar(browser_win: tauri::Window, label: String, url: String) 
             Payload {
                 label: label,
                 url: browser_win.url().to_string(),
-                cmd: if let true = url.starts_with("{") {
-                    url
-                } else {
-                    "".to_string()
-                },
+                cmd: None,
             },
         )
         .unwrap();
 }
 
-pub fn emit_browser_bar_request(browser_win: tauri::Window, label: String, url: String) {
+pub fn emit_browser_bar_request(browser_win: tauri::Window, label: String, command: String) {
     browser_win
         .emit_to(
             format!("{}_bar", label).as_str(),
@@ -85,7 +81,7 @@ pub fn emit_browser_bar_request(browser_win: tauri::Window, label: String, url: 
             Payload {
                 label: label,
                 url: browser_win.url().to_string(),
-                cmd: url,
+                cmd: Some(command),
             },
         )
         .unwrap();
@@ -121,7 +117,7 @@ pub fn browser_command(browser_win: tauri::Window, label: String, command: Strin
                         .as_str(),
                 );
             } else {
-                emit_browser_bar(browser_win, label, command);
+                emit_browser_bar(browser_win, label);
             }
         }
         Err(e) => {
