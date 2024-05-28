@@ -1,13 +1,13 @@
 use serde_json::Result;
-use tauri::Manager;
+use tauri::{command, Manager};
 
 // the payload type must implement `Serialize` and `Clone`.
-#[derive(Clone, serde::Serialize)]
-struct Payload {
-    label: String,
-    url: String,
-    cmd: Option<String>,
-}
+// #[derive(Clone, serde::Serialize)]
+// struct Payload {
+//     label: String,
+//     url: String,
+//     cmd: Option<String>,
+// }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -60,29 +60,19 @@ pub fn browser_directive(window: tauri::Window, id: String, command: String) {
 }
 
 pub fn emit_browser_bar(browser_win: tauri::Window, label: String) {
-    browser_win
-        .emit_to(
-            format!("{}_bar", label).as_str(),
-            "webview-loaded",
-            Payload {
-                label: label,
-                url: browser_win.url().to_string(),
-                cmd: None,
-            },
-        )
-        .unwrap();
+    emit_browser_bar_command(
+        browser_win.clone(),
+        label,
+        format!("{{command:'webview-loaded', url: '{}'}}", browser_win.url()),
+    );
 }
 
-pub fn emit_browser_bar_request(browser_win: tauri::Window, label: String, command: String) {
+pub fn emit_browser_bar_command(browser_win: tauri::Window, label: String, command: String) {
     browser_win
         .emit_to(
             format!("{}_bar", label).as_str(),
-            "webview-request",
-            Payload {
-                label: label,
-                url: browser_win.url().to_string(),
-                cmd: Some(command),
-            },
+            "__browser__command",
+            command,
         )
         .unwrap();
 }
@@ -106,8 +96,6 @@ pub fn browser_command(browser_win: tauri::Window, label: String, command: Strin
         Ok(json_data) => {
             if json_data["command"] == "__open__devtools" {
                 toggle_devtools(browser_win, label);
-            } else if json_data["command"] == "__request__url" {
-                emit_browser_bar_request(browser_win, label, command);
             } else if json_data["command"] == "__float_browser_action" {
                 browser_execute(
                     browser_win,
@@ -117,7 +105,7 @@ pub fn browser_command(browser_win: tauri::Window, label: String, command: Strin
                         .as_str(),
                 );
             } else {
-                emit_browser_bar(browser_win, label);
+                emit_browser_bar_command(browser_win, label, command);
             }
         }
         Err(e) => {

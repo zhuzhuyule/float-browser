@@ -29,10 +29,17 @@ export function BrowserInput({}: {}) {
   };
   onCleanup(() => clearTimeout(handle));
 
-  const ls = listen<{ id: string; url: string }>('webview-loaded', e => {
-    if (value() !== e.payload.url) {
-      updateValue(e.payload.url);
-    }
+  const ls = listen<string>('__browser__command', e => {
+    console.log('-------->', e);
+
+    try {
+      const payload = JSON.parse(e.payload);
+      if (payload.command === 'webview-loaded') {
+        if (value() !== payload.url) {
+          updateValue(payload.url);
+        }
+      }
+    } catch (error) {}
   });
 
   onMount(() => navigate());

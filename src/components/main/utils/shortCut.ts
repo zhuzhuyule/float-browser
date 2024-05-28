@@ -9,7 +9,7 @@ export const registerShortCut = () => {
       if (window?.label.startsWith('browser_')) {
         const id = `${window.label.replace(/_bar/, '')}_bar`;
         const win = WebviewWindow.getByLabel(id);
-        win?.emit('toggle-expand');
+        win?.emit('__browser__command', JSON.stringify({ command: '__float_browser_toggle_expand' }));
       }
     });
   });

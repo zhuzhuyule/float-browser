@@ -18,7 +18,7 @@
         if (window.location.href === preUrl) return;
         preUrl = window.location.href;
         window.__TAURI_INVOKE__('__initialized', {
-          url: JSON.stringify({ url: preUrl, id: 'main' })
+          url: JSON.stringify({ command: 'webview-loaded', url: preUrl, id: 'main' })
         });
       }, 200)();
     }
@@ -144,9 +144,7 @@
       const cmdKey = '{$platform$}' === 'macos' ? e.metaKey : e.ctrlKey;
 
       if (e.altKey && cmdKey && (e.code === 'KeyI' || e.code === 'KeyJ')) {
-        window.__TAURI_INVOKE__('__initialized', {
-          url: JSON.stringify({ command: '__open__devtools' })
-        });
+        browserAction('__open__devtools');
       }
 
       if (e.shiftKey || e.altKey) return;
@@ -154,6 +152,9 @@
         switch (e.code) {
           case 'KeyR':
             location.reload();
+            break;
+          case 'KeyS':
+            browserAction('__float_browser_toggle_expand');
             break;
           case 'BracketLeft':
             history.back();

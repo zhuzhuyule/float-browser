@@ -11,7 +11,7 @@ import { listen } from '@tauri-apps/api/event';
 import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { BrowserInput } from './BrowserInput';
-import { useShortCut, handleBack, handleRefresh, handleShowBrowser } from './actions';
+import { useShortCut, handleBack, handleRefresh } from './actions';
 
 export function Browser() {
   let justFocused = true;
@@ -23,13 +23,13 @@ export function Browser() {
 
   const ls: Promise<() => void>[] = [];
   ls.push(
-    listen<{ id: string }>('toggle-expand', _e => {
-      handleExpand();
-    })
-  );
-  ls.push(
-    listen<{ cmd: string }>('webview-request', e => {
-      console.log('-------->', JSON.parse(e.payload.cmd));
+    listen<string>('__browser__command', e => {
+      const payload = JSON.parse(e.payload);
+      switch (payload.command) {
+        case '__float_browser_toggle_expand':
+          handleExpand();
+          break;
+      }
     })
   );
 
@@ -75,11 +75,7 @@ export function Browser() {
       >
         {isExpand() && (
           <>
-            <IconButton
-              size="small"
-              onClick={handleRefresh}
-              onMouseEnter={onMouseEnter(handleRefresh)}
-            >
+            <IconButton size="small" onClick={handleRefresh} onMouseEnter={onMouseEnter(handleRefresh)}>
               <RefreshIcon />
             </IconButton>
             <IconButton size="small" onClick={handleBack} onMouseEnter={onMouseEnter(handleBack)}>
@@ -93,16 +89,8 @@ export function Browser() {
         <IconButton size="small" onClick={handleExpand} onMouseEnter={onMouseEnter(handleExpand)}>
           {isExpand() ? <KeyboardDoubleArrowUpIcon /> : <KeyboardDoubleArrowDownIcon />}
         </IconButton>
-        <Box
-          data-tauri-drag-region
-          width={20}
-          height={1}
-          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-        >
-          <DragIndicatorIcon
-            data-tauri-drag-region
-            sx={{ color: 'grey', opacity: 0.5, cursor: 'grab' }}
-          />
+        <Box data-tauri-drag-region width={20} height={1} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <DragIndicatorIcon data-tauri-drag-region sx={{ color: 'grey', opacity: 0.5, cursor: 'grab' }} />
         </Box>
       </Box>
     </Box>
