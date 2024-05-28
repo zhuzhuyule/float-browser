@@ -166,30 +166,38 @@
     });
   }
 
-  function readContent() {
+  function browserCall(command, ...params) {
     const time = Date.now();
-    const key = `read_content_${time}`;
+    const key = `__float_browser_action${time}`;
     return new Promise(function (resolve) {
-      __float_browser_event_target.addEventListener(key, event => resolve(event.detail), {
-        once: true
-      });
-
+      window.__float_browser_event_target.addEventListener(key, event => resolve(event.detail), { once: true });
       window.__TAURI_INVOKE__('__initialized', {
         url: JSON.stringify({
-          command: '__read_content',
-          key
+          command,
+          key,
+          params
         })
       });
+    });
+  }
+
+  function browserAction(command, ...params) {
+    window.__TAURI_INVOKE__('__initialized', {
+      url: JSON.stringify({
+        command,
+        params
+      })
     });
   }
 
   if (/^browser_\d+$/.test(window.__TAURI_METADATA__.__currentWindow.label) && !window.__has_initialized) {
     window.__has_initialized = true;
     window.__float_browser_event_target = new EventTarget();
+    window.__float_browser_action = browserAction;
+    window.__float_browser_call = browserCall;
 
     initWatch();
     addShortKey();
     cacheRequest();
-    window.readContent = readContent;
   }
 })();
