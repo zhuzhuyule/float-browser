@@ -19,8 +19,7 @@ export const createBrowser = () => {
     transparent: true,
     minimizable: false,
     maximizable: false,
-    hiddenTitle: true,
-    contentProtected: true
+    hiddenTitle: true
   });
   const browserWin = new WebviewWindow(key, {
     url: '/',
@@ -34,11 +33,9 @@ export const createBrowser = () => {
   browserBar.once(TauriEvent.WINDOW_CREATED, async function (e) {
     const pos = await browserBar.outerPosition();
     const factor = await browserBar.scaleFactor();
-    browserWin
-      .setPosition(new PhysicalPosition(pos.x, pos.y + CONST_BROWSER_HEIGHT * factor))
-      .then(() => {
-        browserBar.setFocus();
-      });
+    browserWin.setPosition(new PhysicalPosition(pos.x, pos.y + CONST_BROWSER_HEIGHT * factor)).then(() => {
+      browserBar.setFocus();
+    });
   });
 
   browserWin.onCloseRequested(function () {
@@ -49,9 +46,7 @@ export const createBrowser = () => {
     const isVisible = await browserWin.isVisible();
     if (!isVisible) {
       const factor = await browserBar.scaleFactor();
-      browserWin.setPosition(
-        new PhysicalPosition(pos.payload.x, pos.payload.y + CONST_BROWSER_HEIGHT * factor)
-      );
+      browserWin.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y + CONST_BROWSER_HEIGHT * factor));
     }
   });
 
@@ -59,9 +54,7 @@ export const createBrowser = () => {
     const isVisible = await browserWin.isVisible();
     if (isVisible) {
       const factor = await browserWin.scaleFactor();
-      browserBar.setPosition(
-        new PhysicalPosition(pos.payload.x, pos.payload.y - CONST_BROWSER_HEIGHT * factor)
-      );
+      browserBar.setPosition(new PhysicalPosition(pos.payload.x, pos.payload.y - CONST_BROWSER_HEIGHT * factor));
     }
   });
 
