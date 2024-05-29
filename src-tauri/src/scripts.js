@@ -17,9 +17,7 @@
       debounce(() => {
         if (window.location.href === preUrl) return;
         preUrl = window.location.href;
-        window.__TAURI_INVOKE__('__initialized', {
-          url: JSON.stringify({ command: 'webview-loaded', url: preUrl, id: 'main' })
-        });
+        browserAction('__browser_loaded', preUrl);
       }, 200)();
     }
     window.addEventListener('popstate', routeChange);
@@ -47,14 +45,12 @@
         const url = args[0];
         const type = args[1]?.method || 'GET';
         const cacheKey = location.href + '|||' + url;
-        window.__TAURI_INVOKE__('__initialized', {
-          url: JSON.stringify({
-            command: '__request__url',
-            type: type.toUpperCase(),
-            url: url,
-            page: location.href
-          })
+        browserAction('__browser_request', {
+          type: type.toUpperCase(),
+          url,
+          page: location.href
         });
+
         if (useCache && cacheList.size === 0 && requestCache.has(cacheKey)) {
           return new Response(requestCache.get(cacheKey));
         } else if (useCache && cacheList.has(url) && requestCache.has(cacheKey)) {
@@ -78,13 +74,10 @@
         const url = this._url;
         const type = args[0]?.toUpperCase() || 'GET'; // 获取请求类型，默认为 GET
         const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
-        window.__TAURI_INVOKE__('__initialized', {
-          url: JSON.stringify({
-            command: '__request__url',
-            type: type,
-            url: url,
-            page: location.href
-          })
+        browserAction('__browser_request', {
+          type: type.toUpperCase(),
+          url,
+          page: location.href
         });
         if (useCache && (cacheList.size === 0 || cacheList.has(url)) && requestCache.has(cacheKey)) {
           const cachedResponse = requestCache.get(cacheKey);
@@ -144,7 +137,7 @@
       const cmdKey = '{$platform$}' === 'macos' ? e.metaKey : e.ctrlKey;
 
       if (e.altKey && cmdKey && (e.code === 'KeyI' || e.code === 'KeyJ')) {
-        browserAction('__open__devtools');
+        browserAction('__browser_toggle_devtools');
       }
 
       if (e.shiftKey || e.altKey) return;
@@ -154,7 +147,7 @@
             location.reload();
             break;
           case 'KeyS':
-            browserAction('__float_browser_toggle_expand');
+            browserAction('__browser_toggle_expand');
             break;
           case 'BracketLeft':
             history.back();
@@ -169,13 +162,13 @@
 
   function browserCall(command, ...params) {
     const time = Date.now();
-    const key = `__float_browser_action${time}`;
+    const key = `__browser_call_key_${time}`;
     return new Promise(function (resolve) {
       window.__float_browser_event_target.addEventListener(key, event => resolve(event.detail), { once: true });
       window.__TAURI_INVOKE__('__initialized', {
         url: JSON.stringify({
-          command,
           key,
+          command,
           params
         })
       });

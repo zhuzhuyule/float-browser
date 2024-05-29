@@ -30,13 +30,11 @@ export function BrowserInput({}: {}) {
   onCleanup(() => clearTimeout(handle));
 
   const ls = listen<string>('__browser__command', e => {
-    console.log('-------->', e);
-
     try {
       const payload = JSON.parse(e.payload);
-      if (payload.command === 'webview-loaded') {
-        if (value() !== payload.url) {
-          updateValue(payload.url);
+      if (payload.command === '__browser_loaded') {
+        if (value() !== payload.params[0]) {
+          updateValue(payload.params[0]);
         }
       }
     } catch (error) {}
@@ -168,7 +166,7 @@ export function BrowserInput({}: {}) {
     }
     lastestUrl = url || value();
     localStorage.setItem('browser_url', lastestUrl);
-    invoke('navigate_url', { url: lastestUrl, id: browserBar.label.replace(/_bar/, '') });
+    invoke('browser_navigate', { url: lastestUrl, label: browserBar.label.replace(/_bar/, '') });
   }
 
   function handleCloseSuggestion() {

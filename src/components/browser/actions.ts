@@ -3,12 +3,7 @@ import { createSignal, onCleanup, onMount } from 'solid-js';
 import { platform } from '@tauri-apps/api/os';
 import { invoke } from '@tauri-apps/api/tauri';
 
-import {
-  PhysicalPosition,
-  PhysicalSize,
-  WebviewWindow,
-  appWindow as browserBar
-} from '@tauri-apps/api/window';
+import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 
 export function useShortCut() {
@@ -26,8 +21,8 @@ export function useShortCut() {
 
     const cmdKey = platformName === 'darwin' ? e.metaKey : e.ctrlKey;
     if (e.altKey && cmdKey && (e.code === 'KeyI' || e.code === 'KeyJ')) {
-      const id = browserBar.label.replace(/_bar/, '');
-      invoke('toggle_devtools', { id });
+      const label = browserBar.label.replace(/_bar/, '');
+      invoke('browser_toggle_devtools', { label });
     }
 
     if (e.shiftKey || e.altKey) return;
@@ -75,25 +70,24 @@ export function handleClose() {
 }
 
 export function handleRefresh() {
-  browserDirective('reload');
+  browserExecuteAction('reload');
 }
 
 export function handleBack() {
-  browserDirective('back');
+  browserExecuteAction('back');
 }
 
 export function handleForward() {
-  browserDirective('forward');
+  browserExecuteAction('forward');
 }
 
-function browserDirective(command: string) {
-  invoke('browser_directive', { id: browserBar.label.replace(/_bar/, ''), command });
+function browserExecuteAction(action: string) {
+  invoke('browser_execute_action', { label: browserBar.label.replace(/_bar/, ''), action });
 }
 
 function setUseCache(isUse: boolean, list: string[] = []) {
-  console.log('----cache---->', isUse);
-  invoke('use_cache', {
-    id: browserBar.label.replace(/_bar/, ''),
+  invoke('browser_update_cache', {
+    label: browserBar.label.replace(/_bar/, ''),
     open: `${isUse}`,
     list: JSON.stringify(list)
   });
@@ -122,9 +116,7 @@ export async function handleShowBrowser(isShow: boolean) {
       const factor = await browserBar.scaleFactor();
       const pos = await browserBar.outerPosition();
       await browserWin.hide();
-      await browserWin.setPosition(
-        new PhysicalPosition(pos.x, pos.y + CONST_BROWSER_HEIGHT * factor)
-      );
+      await browserWin.setPosition(new PhysicalPosition(pos.x, pos.y + CONST_BROWSER_HEIGHT * factor));
       browserWin.show();
       browserBar.setFocus();
     }

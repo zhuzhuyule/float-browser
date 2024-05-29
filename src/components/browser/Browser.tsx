@@ -26,7 +26,7 @@ export function Browser() {
     listen<string>('__browser__command', e => {
       const payload = JSON.parse(e.payload);
       switch (payload.command) {
-        case '__float_browser_toggle_expand':
+        case '__browser_toggle_expand':
           handleExpand();
           break;
       }
