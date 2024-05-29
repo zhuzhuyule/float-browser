@@ -11,7 +11,7 @@ import { listen } from '@tauri-apps/api/event';
 import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { BrowserInput } from './BrowserInput';
-import { useShortCut, handleBack, handleRefresh } from './actions';
+import { useShortCut, handleBack, handleRefresh, handleExpand, handleToggleCache, isExpand } from './actions';
 
 export function Browser() {
   let justFocused = true;
@@ -19,7 +19,7 @@ export function Browser() {
   let lastFocusedTime = Date.now();
   let timeoutHandle = 0;
 
-  const { isExpand, handleExpand } = useShortCut();
+  useShortCut();
 
   const ls: Promise<() => void>[] = [];
   ls.push(
@@ -28,6 +28,9 @@ export function Browser() {
       switch (payload.command) {
         case '__browser_toggle_expand':
           handleExpand();
+          break;
+        case '__browser_toggle_cache':
+          handleToggleCache(payload.params[0]);
           break;
       }
     })
@@ -73,6 +76,9 @@ export function Browser() {
         }}
         onMouseEnter={handleBrowserFocusedAndFirstMouseEnter}
       >
+        <Box data-tauri-drag-region width={20} height={1} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <DragIndicatorIcon data-tauri-drag-region sx={{ color: 'grey', opacity: 0.5, cursor: 'grab' }} />
+        </Box>
         {isExpand() && (
           <>
             <IconButton size="small" onClick={handleRefresh} onMouseEnter={onMouseEnter(handleRefresh)}>
@@ -89,9 +95,6 @@ export function Browser() {
         <IconButton size="small" onClick={handleExpand} onMouseEnter={onMouseEnter(handleExpand)}>
           {isExpand() ? <KeyboardDoubleArrowUpIcon /> : <KeyboardDoubleArrowDownIcon />}
         </IconButton>
-        <Box data-tauri-drag-region width={20} height={1} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <DragIndicatorIcon data-tauri-drag-region sx={{ color: 'grey', opacity: 0.5, cursor: 'grab' }} />
-        </Box>
       </Box>
     </Box>
   );

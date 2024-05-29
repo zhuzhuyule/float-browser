@@ -4,12 +4,15 @@ import { Box, Input, List, ListItem, ListItemButton, ListItemText } from '@suid/
 import { invoke } from '@tauri-apps/api/tauri';
 
 import { listen } from '@tauri-apps/api/event';
-import { appWindow as browserBar } from '@tauri-apps/api/window';
+import { WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
-import { handleResizeBar } from './actions';
+import { handleResizeBar, handleSelectUrl } from './actions';
+import { effect } from 'solid-js/web';
+import { debounce } from '../../util';
 
 export function BrowserInput({}: {}) {
   let ref: HTMLInputElement | undefined;
+  let originalWidth = document.body.clientWidth;
 
   let lastestUrl = '';
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
@@ -17,6 +20,8 @@ export function BrowserInput({}: {}) {
 
   const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
   const [history, setHistory] = createSignal<string[]>(JSON.parse(localStorage.getItem('history_urls') || '[]') || []);
+
+  const [autoWidthStatus, setAutoWidthStatus] = createSignal({ bar: false, input: false });
 
   let handle = 0;
   const updateValue = (vl: string) => {
@@ -29,13 +34,41 @@ export function BrowserInput({}: {}) {
   };
   onCleanup(() => clearTimeout(handle));
 
+  browserBar.onFocusChanged(e => {
+    if (e.payload) {
+      originalWidth = document.body.clientWidth;
+    } else {
+      const input = document.getElementById('url-input')! as HTMLInputElement;
+      input.blur();
+    }
+    setAutoWidthStatus({ ...autoWidthStatus(), bar: e.payload });
+  });
+
+  effect(() => {
+    const status = autoWidthStatus();
+    debounce(() => {
+      if (status.bar && status.input) {
+        startAutoWidth();
+      } else if (!status.bar) {
+        endAutoWidth();
+      }
+    })();
+  });
+
   const ls = listen<string>('__browser__command', e => {
     try {
       const payload = JSON.parse(e.payload);
-      if (payload.command === '__browser_loaded') {
-        if (value() !== payload.params[0]) {
-          updateValue(payload.params[0]);
-        }
+      switch (payload.command) {
+        case '__browser_loaded':
+          if (value() !== payload.params[0]) {
+            updateValue(payload.params[0]);
+          }
+          break;
+        case '__browser_focus_address':
+          handleSelectUrl();
+          break;
+        default:
+          break;
       }
     } catch (error) {}
   });
@@ -83,6 +116,7 @@ export function BrowserInput({}: {}) {
         onChange={e => {
           setValue(e.target.value);
           handleShowSuggestion(lastestUrl !== e.target.value);
+          setAutoWidthStatus({ ...autoWidthStatus(), input: true });
         }}
         onKeyDown={e => {
           switch (e.key) {
@@ -114,11 +148,15 @@ export function BrowserInput({}: {}) {
               break;
           }
         }}
-        onFocus={() => handleShowSuggestion(lastestUrl !== value())}
+        onFocus={() => {
+          handleShowSuggestion(lastestUrl !== value());
+          setAutoWidthStatus({ ...autoWidthStatus(), input: true });
+        }}
         onBlur={e => {
           const url = (e.relatedTarget as HTMLElement)?.dataset['item-url'];
           if (url) navigate(url);
           handleCloseSuggestion();
+          setAutoWidthStatus({ ...autoWidthStatus(), input: false });
         }}
       />
       {shouldShow() && (
@@ -156,6 +194,21 @@ export function BrowserInput({}: {}) {
       )}
     </>
   );
+
+  function startAutoWidth() {
+    console.log('start');
+
+    const input = document.getElementById('url-input')! as HTMLInputElement;
+    const offset = document.body.clientWidth - input.offsetWidth;
+    handleResizeBar(isShowingSuggesting(), input.scrollWidth + offset);
+  }
+  function endAutoWidth() {
+    const win = WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))!;
+    Promise.all([win.outerSize(), win.scaleFactor()]).then(([outerSize, scaleFactor]) => {
+      console.log('end');
+      handleResizeBar(isShowingSuggesting(), outerSize.toLogical(scaleFactor).width);
+    });
+  }
 
   function navigate(url = '') {
     if (url) {

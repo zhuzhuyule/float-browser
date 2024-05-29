@@ -149,6 +149,15 @@
           case 'KeyS':
             browserAction('__browser_toggle_expand');
             break;
+          case 'KeyY':
+            browserAction('__browser_toggle_cache', true);
+            break;
+          case 'KeyN':
+            browserAction('__browser_toggle_cache', false);
+            break;
+          case 'KeyL':
+            browserAction('__browser_focus_address');
+            break;
           case 'BracketLeft':
             history.back();
             break;

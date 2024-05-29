@@ -6,9 +6,9 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 
+const [isExpand, setIsExpand] = createSignal(true);
+const [isUseingCache, setIsUseingCache] = createSignal(false);
 export function useShortCut() {
-  const [isExpand, setIsExpand] = createSignal(true);
-
   onMount(() => {
     document.addEventListener('keypress', handleShortCut);
   });
@@ -40,11 +40,14 @@ export function useShortCut() {
         case 'BracketLeft':
           handleBack();
           break;
+        case 'KeyL':
+          handleSelectUrl();
+          break;
         case 'KeyY':
-          setUseCache(true, []);
+          handleToggleCache(true);
           break;
         case 'KeyN':
-          setUseCache(false, []);
+          handleToggleCache(false);
           break;
         case 'BracketRight':
           handleForward();
@@ -52,16 +55,22 @@ export function useShortCut() {
       }
     }
   }
+}
 
-  function handleExpand() {
-    handleShowBrowser(isExpand());
-    setIsExpand(!isExpand());
-  }
+export { isExpand };
 
-  return {
-    isExpand,
-    handleExpand
-  };
+export function handleExpand() {
+  handleShowBrowser(isExpand());
+  setIsExpand(!isExpand());
+}
+
+export function handleToggleCache(isUse = !isUseingCache(), list: string[] = []) {
+  setIsUseingCache(isUse);
+  invoke('browser_update_cache', {
+    label: browserBar.label.replace(/_bar/, ''),
+    open: `${isUse}`,
+    list: JSON.stringify(list)
+  });
 }
 
 export function handleClose() {
@@ -85,21 +94,21 @@ function browserExecuteAction(action: string) {
   invoke('browser_execute_action', { label: browserBar.label.replace(/_bar/, ''), action });
 }
 
-function setUseCache(isUse: boolean, list: string[] = []) {
-  invoke('browser_update_cache', {
-    label: browserBar.label.replace(/_bar/, ''),
-    open: `${isUse}`,
-    list: JSON.stringify(list)
+export function handleSelectUrl() {
+  browserBar.setFocus().then(() => {
+    const input = document.getElementById('url-input')! as HTMLInputElement;
+    input.focus();
+    input.select();
   });
 }
 
-export async function handleResizeBar(isExpand: boolean) {
+export async function handleResizeBar(isExpand: boolean, width = 0) {
   const size = await browserBar.outerSize();
   const factor = await browserBar.scaleFactor();
   if (isExpand) {
-    browserBar.setSize(new PhysicalSize(size.width, (CONST_BROWSER_HEIGHT + 500) * factor));
+    browserBar.setSize(new PhysicalSize(width * factor || size.width, (CONST_BROWSER_HEIGHT + 500) * factor));
   } else {
-    browserBar.setSize(new PhysicalSize(size.width, CONST_BROWSER_HEIGHT * factor));
+    browserBar.setSize(new PhysicalSize(width * factor || size.width, CONST_BROWSER_HEIGHT * factor));
   }
 }
 
