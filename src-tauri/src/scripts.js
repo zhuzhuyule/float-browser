@@ -34,102 +34,141 @@
     };
   }
 
+  const excludeHeaders = ['content-encoding', 'content-length', 'content-type', 'date', 'server', 'vary'];
+
   function cacheRequest() {
-    (function () {
-      let useCache = JSON.parse(localStorage.getItem('useCache') || 'false');
-      const cacheList = new Set(JSON.parse(localStorage.getItem('cacheList') || '[]'));
-      const requestCache = new Map(JSON.parse(localStorage.getItem('requestCache') || '[]'));
+    let useCache = JSON.parse(localStorage.getItem('useCache') || 'false');
+    const cacheList = new Set(JSON.parse(localStorage.getItem('cacheList') || '[]'));
+    const requestCache = new Map(JSON.parse(localStorage.getItem('requestCache') || '[]'));
 
-      const originalFetch = window.fetch;
-      window.fetch = async function (...args) {
-        const url = args[0];
-        const type = args[1]?.method || 'GET';
-        const cacheKey = location.href + '|||' + url;
-        browserAction('__browser_request', {
-          type: type.toUpperCase(),
-          url,
-          page: location.href
-        });
-
-        if (useCache && cacheList.size === 0 && requestCache.has(cacheKey)) {
-          return new Response(requestCache.get(cacheKey));
-        } else if (useCache && cacheList.has(url) && requestCache.has(cacheKey)) {
-          return new Response(requestCache.get(cacheKey));
-        }
-        const response = await originalFetch.apply(this, args);
-        const clonedResponse = await response.clone().text();
-        requestCache.set(cacheKey, clonedResponse);
-        localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries()))); // 将 requestCache 缓存在 localStorage
-        return response;
-      };
-
-      const originalXhrOpen = XMLHttpRequest.prototype.open;
-      const originalXhrSend = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function (...args) {
-        this._url = args[1];
-        Object.defineProperty(this, 'responseURL', { value: args[1], writable: true });
-        return originalXhrOpen.apply(this, args);
-      };
-      XMLHttpRequest.prototype.send = function (...args) {
-        const url = this._url;
-        const type = args[0]?.toUpperCase() || 'GET'; // 获取请求类型，默认为 GET
-        const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
-        browserAction('__browser_request', {
-          type: type.toUpperCase(),
-          url,
-          page: location.href
-        });
-        if (useCache && (cacheList.size === 0 || cacheList.has(url)) && requestCache.has(cacheKey)) {
-          const cachedResponse = requestCache.get(cacheKey);
-          setTimeout(() => {
-            Object.defineProperty(this, 'readyState', { value: XMLHttpRequest.DONE, writable: false });
-            Object.defineProperty(this, 'status', { value: 200, writable: false });
-            Object.defineProperty(this, 'response', { value: cachedResponse, writable: false });
-            Object.defineProperty(this, 'responseText', { value: cachedResponse, writable: false });
-            Object.defineProperty(this, 'responseType', { value: '', writable: false });
-            Object.defineProperty(this, 'responseXML', { value: null, writable: false });
-            const event = new Event('readystatechange');
-            this.dispatchEvent(event);
-            // this.onreadystatechange?.();
-            this.onloadend();
-          }, 0);
-          return;
-        }
-        this.addEventListener('readystatechange', event => {
-          if (this.readyState === 4 && this.status === 200) {
-            requestCache.set(cacheKey, this.responseText);
-            localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries())));
-          }
-        });
-        return originalXhrSend.apply(this, args);
-      };
-
-      window.setUseCache = function (value) {
-        useCache = value;
-        localStorage.setItem('useCache', JSON.stringify(useCache));
-      };
-
-      window.updateCacheList = function (urls) {
-        cacheList.clear();
-        urls.forEach(url => {
-          cacheList.add(url);
-        });
-        localStorage.setItem('cacheList', JSON.stringify(Array.from(cacheList)));
-      };
-
-      window.clearCacheList = function () {
-        cacheList.clear();
-        requestCache.clear();
-        localStorage.removeItem('cacheList');
-        localStorage.removeItem('requestCache');
-      };
-
-      // 在页面加载时恢复 useCache 的值
-      const cachedUseCache = JSON.parse(localStorage.getItem('useCache'));
-      if (cachedUseCache !== null) {
-        useCache = cachedUseCache;
+    const originalFetch = window.fetch;
+    window.fetch = async function (...args) {
+      let url = args[0];
+      let method = args[1]?.method || 'GET';
+      if (args[0] instanceof Request) {
+        url = args[0].url;
+        method = args[0].method;
       }
-    })();
+      method = method.toUpperCase();
+
+      const response = await originalFetch.apply(this, args);
+
+      const headers = {};
+      const clonedResponse = response.clone();
+      clonedResponse.headers.forEach((value, key) => {
+        if (excludeHeaders.includes(key.toLowerCase()) || key.toLowerCase().startsWith('x')) {
+          headers[key] = value;
+        }
+      });
+
+      browserAction('__browser_request', {
+        type: 'fetch',
+        url,
+        method,
+        page: location.href,
+        response: await clonedResponse.text(),
+        responseHeader: headers
+      });
+      return response;
+    };
+
+    const originalXhrOpen = XMLHttpRequest.prototype.open;
+    const originalXhrSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (...args) {
+      this._method = args[0];
+      Object.defineProperty(this, 'responseURL', { value: args[1] || 'GET', writable: true });
+      return originalXhrOpen.apply(this, args);
+    };
+    XMLHttpRequest.prototype.send = function (...args) {
+      const url = this.responseURL;
+      const method = this._method; // 获取请求类型，默认为 GET
+      const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
+      if (useCache && (cacheList.size === 0 || cacheList.has(url)) && requestCache.has(cacheKey)) {
+        const cachedResponse = requestCache.get(cacheKey);
+        setTimeout(() => {
+          Object.defineProperty(this, 'readyState', { value: XMLHttpRequest.DONE, writable: false });
+          Object.defineProperty(this, 'status', { value: 200, writable: false });
+          Object.defineProperty(this, 'response', { value: cachedResponse, writable: false });
+          Object.defineProperty(this, 'responseText', { value: cachedResponse, writable: false });
+          Object.defineProperty(this, 'responseType', { value: '', writable: false });
+          Object.defineProperty(this, 'responseXML', { value: null, writable: false });
+          Object.defineProperty(this, 'getAllResponseHeaders', { value: () => formatHeaders({}), writable: false });
+          const event = new Event('readystatechange');
+          this.dispatchEvent(event);
+          this.onloadend();
+        }, 0);
+        return;
+      }
+
+      this.addEventListener('loadend', event => {
+        if (this.readyState === 4 && XMLHttpRequest.DONE) {
+          requestCache.set(cacheKey, this.responseText);
+          localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries())));
+
+          browserAction('__browser_request', {
+            type: 'xhr',
+            url,
+            method,
+            page: location.href,
+            status: this.status,
+            response: this.responseText,
+            responseType: this.responseType,
+            responseXML: this.responseXML,
+            responseHeader: parseHeaders(this.getAllResponseHeaders())
+          });
+        }
+      });
+      return originalXhrSend.apply(this, args);
+    };
+
+    function parseHeaders(headers) {
+      var result = {};
+      var headersArray = headers.trim().split(/[\r\n]+/);
+      headersArray.forEach(function (line) {
+        var parts = line.split(': ');
+        var key = parts.shift();
+        var value = parts.join(': ');
+        if (excludeHeaders.includes(key.toLowerCase()) || key.toLowerCase().startsWith('x')) {
+          result[key] = value;
+        }
+      });
+      return result;
+    }
+    function formatHeaders(headersObj) {
+      var result = '';
+      for (var key in headersObj) {
+        if (headersObj.hasOwnProperty(key)) {
+          result += key + ': ' + headersObj[key] + '\r\n';
+        }
+      }
+      return result;
+    }
+
+    window.setUseCache = function (value) {
+      useCache = value;
+      localStorage.setItem('useCache', JSON.stringify(useCache));
+    };
+
+    window.updateCacheList = function (urls) {
+      cacheList.clear();
+      urls.forEach(url => {
+        cacheList.add(url);
+      });
+      localStorage.setItem('cacheList', JSON.stringify(Array.from(cacheList)));
+    };
+
+    window.clearCacheList = function () {
+      cacheList.clear();
+      requestCache.clear();
+      localStorage.removeItem('cacheList');
+      localStorage.removeItem('requestCache');
+    };
+
+    // 在页面加载时恢复 useCache 的值
+    const cachedUseCache = JSON.parse(localStorage.getItem('useCache'));
+    if (cachedUseCache !== null) {
+      useCache = cachedUseCache;
+    }
   }
 
   function addShortKey() {

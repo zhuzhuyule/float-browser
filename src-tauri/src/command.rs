@@ -37,8 +37,10 @@ pub fn emit_browser_callback(win: tauri::Window, key: String, data: &str) {
 pub fn browser_invoke(window: tauri::Window, label: String, payload: String) {
     let result: Result<serde_json::Value> = serde_json::from_str(payload.as_str());
     match result {
-        Ok(json_data) => match json_data["command"].to_string().as_str() {
-            "__browser_toggle_devtools" => invokes::browser_toggle_devtools(window, label),
+        Ok(json_data) => match json_data["command"].as_str().unwrap() {
+            "__browser_toggle_devtools" => {
+                invokes::browser_toggle_devtools(window, label);
+            }
             "__float_browser_action" => emit_browser_callback(
                 window,
                 json_data["key"].to_string(),
@@ -46,7 +48,9 @@ pub fn browser_invoke(window: tauri::Window, label: String, payload: String) {
                     .unwrap()
                     .as_str(),
             ),
-            _ => emit_browser_bar_command(window, label, payload),
+            _ => {
+                emit_browser_bar_command(window, label, payload);
+            }
         },
         Err(e) => {
             println!("Failed to parse JSON: {}", e);

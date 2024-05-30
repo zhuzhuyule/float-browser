@@ -30,7 +30,10 @@ export function Browser() {
           handleExpand();
           break;
         case '__browser_toggle_cache':
-          handleToggleCache(payload.params[0]);
+          handleToggleCache();
+          break;
+        case '__browser_request':
+          console.log(payload.params[0]);
           break;
       }
     })

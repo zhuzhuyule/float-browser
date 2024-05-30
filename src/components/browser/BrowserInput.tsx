@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
-import { handleResizeBar, handleSelectUrl } from './actions';
+import { handleResizeBar, handleSelectUrl, isExpand } from './actions';
 import { effect } from 'solid-js/web';
 import { debounce } from '../../util';
 
@@ -60,8 +60,6 @@ export function BrowserInput({}: {}) {
           if (value() !== payload.params[0]) {
             updateValue(payload.params[0]);
           }
-          console.log(payload.params);
-
           WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))?.setTitle(payload.params[1]);
           break;
         case '__browser_focus_address':
@@ -196,8 +194,6 @@ export function BrowserInput({}: {}) {
   );
 
   function startAutoWidth() {
-    console.log('start');
-
     const input = document.getElementById('url-input')! as HTMLInputElement;
     const offset = document.body.clientWidth - input.offsetWidth;
     handleResizeBar(isShowingSuggesting(), input.scrollWidth + offset);
@@ -205,8 +201,7 @@ export function BrowserInput({}: {}) {
   function endAutoWidth() {
     const win = WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))!;
     Promise.all([win.outerSize(), win.scaleFactor()]).then(([outerSize, scaleFactor]) => {
-      console.log('end');
-      handleResizeBar(isShowingSuggesting(), outerSize.toLogical(scaleFactor).width);
+      handleResizeBar(isShowingSuggesting(), isExpand() ? outerSize.toLogical(scaleFactor).width : 200);
     });
   }
 
