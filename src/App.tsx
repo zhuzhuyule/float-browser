@@ -14,6 +14,10 @@ export default function App() {
           component: lazy(() => import('./components/browser/Browser'))
         },
         {
+          path: '/browser-request',
+          component: lazy(() => import('./components/browser/BrowserRequest'))
+        },
+        {
           path: '*empty',
           component: () => ''
         }

@@ -4,11 +4,14 @@ import { Box, Input, List, ListItem, ListItemButton, ListItemText } from '@suid/
 import { invoke } from '@tauri-apps/api/tauri';
 
 import { listen } from '@tauri-apps/api/event';
-import { WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
+import { WebviewWindow, appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { handleResizeBar, handleSelectUrl, isExpand } from './actions';
 import { effect } from 'solid-js/web';
 import { debounce } from '../../util';
+
+const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
+export { value };
 
 export function BrowserInput({}: {}) {
   let ref: HTMLInputElement | undefined;
@@ -17,7 +20,6 @@ export function BrowserInput({}: {}) {
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
   const [selectIndex, setSelectIndex] = createSignal(0);
 
-  const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
   const [history, setHistory] = createSignal<string[]>(JSON.parse(localStorage.getItem('history_urls') || '[]') || []);
 
   const [autoWidthStatus, setAutoWidthStatus] = createSignal({ bar: false, input: false });
@@ -60,6 +62,7 @@ export function BrowserInput({}: {}) {
           if (value() !== payload.params[0]) {
             updateValue(payload.params[0]);
           }
+          appWindow.setTitle(payload.params[1]);
           WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))?.setTitle(payload.params[1]);
           break;
         case '__browser_focus_address':

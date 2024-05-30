@@ -7,3 +7,18 @@ export function debounce<T extends (...args: any[]) => void>(func: T, wait = 100
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+export function parseURL(pageUrl: string) {
+  const url = new URL(pageUrl);
+  const queryParams = Object.fromEntries(new URLSearchParams(url.search).entries());
+
+  return {
+    protocol: url.protocol,
+    hostname: url.hostname,
+    port: url.port,
+    pathname: url.pathname,
+    search: url.search,
+    hash: url.hash,
+    queryParams: queryParams
+  };
+}

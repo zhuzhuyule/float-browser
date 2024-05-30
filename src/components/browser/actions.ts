@@ -3,8 +3,9 @@ import { createSignal, onCleanup, onMount } from 'solid-js';
 import { platform } from '@tauri-apps/api/os';
 import { invoke } from '@tauri-apps/api/tauri';
 
-import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow as browserBar } from '@tauri-apps/api/window';
+import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
+import { value } from './BrowserInput';
 
 const [isExpand, setIsExpand] = createSignal(true);
 const [isUseingCache, setIsUseingCache] = createSignal(false);
@@ -33,6 +34,9 @@ export function useShortCut() {
           break;
         case 'KeyR':
           handleRefresh();
+          break;
+        case 'KeyP':
+          handleShowRequest();
           break;
         case 'KeyS':
           handleExpand();
@@ -80,6 +84,19 @@ export function handleClose() {
 
 export function handleRefresh() {
   browserExecuteAction('reload');
+}
+
+export async function handleShowRequest() {
+  const browserRequest = new WebviewWindow(browserBar.label.replace(/_bar/, '_request'), {
+    url: '/browser-request',
+    width: 800,
+    height: 800,
+    title: await appWindow.title(),
+    decorations: true
+  });
+  setTimeout(() => {
+    browserRequest.emit('__request-info', value());
+  }, 500);
 }
 
 export function handleBack() {

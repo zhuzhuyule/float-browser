@@ -18,7 +18,8 @@
     "@suid/material": "^0.16.0",
     "@suid/vite-plugin": "^0.2.0",
     "@tauri-apps/api": "^1",
-    "solid-js": "^1.8.17"
+    "solid-js": "^1.8.17",
+    "tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store#v1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1",

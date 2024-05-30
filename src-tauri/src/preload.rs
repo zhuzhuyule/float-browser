@@ -29,6 +29,15 @@ impl<R: Runtime> Plugin<R> for PreloadPlugin<R> {
 
     fn initialize(&mut self, app: &tauri::AppHandle<R>, _: serde_json::Value) -> Result<()> {
         self.app_dir = app.path_resolver().app_config_dir().unwrap();
+        println!("config dir: {}", self.app_dir.display());
+        println!(
+            "cache dir: {}",
+            app.path_resolver().app_cache_dir().unwrap().display()
+        );
+        println!(
+            "data dir: {}",
+            app.path_resolver().app_data_dir().unwrap().display()
+        );
         Ok(())
     }
 

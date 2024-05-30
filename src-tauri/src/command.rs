@@ -16,6 +16,13 @@ pub fn emit_browser_bar_command(browser_win: tauri::Window, label: String, paylo
         .emit_to(
             format!("{}_bar", label).as_str(),
             "__browser__command",
+            payload.clone(),
+        )
+        .unwrap();
+    browser_win
+        .emit_to(
+            format!("{}_request", label).as_str(),
+            "__browser__command",
             payload,
         )
         .unwrap();

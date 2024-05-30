@@ -12,6 +12,8 @@ import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { BrowserInput } from './BrowserInput';
 import { useShortCut, handleBack, handleRefresh, handleExpand, handleToggleCache, isExpand } from './actions';
+import { store } from '../../util/store';
+import { parseURL } from '../../util';
 
 export default function Browser() {
   let justFocused = true;
@@ -33,7 +35,9 @@ export default function Browser() {
           handleToggleCache();
           break;
         case '__browser_request':
-          console.log(payload.params[0]);
+          const urlInfo = parseURL(payload.params[0].page);
+          store[urlInfo.hostname].set(payload.params[0].url, payload.params[0]);
+          store[urlInfo.hostname].save();
           break;
       }
     })

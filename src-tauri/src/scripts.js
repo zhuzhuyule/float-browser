@@ -1,4 +1,5 @@
 (function () {
+  let count = 0;
   function initWatch() {
     let preUrl = '';
     let e;
@@ -17,6 +18,7 @@
       debounce(() => {
         if (window.location.href === preUrl) return;
         preUrl = window.location.href;
+        count = 0;
         browserAction('__browser_loaded', preUrl, document.title);
       }, 200)();
     }
@@ -43,6 +45,8 @@
 
     const originalFetch = window.fetch;
     window.fetch = async function (...args) {
+      count++;
+      const index = count;
       let url = args[0];
       let method = args[1]?.method || 'GET';
       if (args[0] instanceof Request) {
@@ -62,6 +66,7 @@
       });
 
       browserAction('__browser_request', {
+        i: index,
         type: 'fetch',
         url,
         method,
@@ -80,6 +85,8 @@
       return originalXhrOpen.apply(this, args);
     };
     XMLHttpRequest.prototype.send = function (...args) {
+      count++;
+      const index = count;
       const url = this.responseURL;
       const method = this._method; // 获取请求类型，默认为 GET
       const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
@@ -106,6 +113,7 @@
           localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries())));
 
           browserAction('__browser_request', {
+            i: index,
             type: 'xhr',
             url,
             method,
