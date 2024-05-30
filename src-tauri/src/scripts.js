@@ -1,8 +1,8 @@
 (function () {
   function initWatch() {
     let preUrl = '';
-    function debounce(f, d) {
-      let e;
+    let e;
+    function debounce(f, d = 100) {
       return function () {
         const c = this;
         const a = arguments;
@@ -17,7 +17,7 @@
       debounce(() => {
         if (window.location.href === preUrl) return;
         preUrl = window.location.href;
-        browserAction('__browser_loaded', preUrl);
+        browserAction('__browser_loaded', preUrl, document.title);
       }, 200)();
     }
     window.addEventListener('popstate', routeChange);

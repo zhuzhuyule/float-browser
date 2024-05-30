@@ -12,7 +12,6 @@ import { debounce } from '../../util';
 
 export function BrowserInput({}: {}) {
   let ref: HTMLInputElement | undefined;
-  let originalWidth = document.body.clientWidth;
 
   let lastestUrl = '';
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
@@ -35,9 +34,7 @@ export function BrowserInput({}: {}) {
   onCleanup(() => clearTimeout(handle));
 
   browserBar.onFocusChanged(e => {
-    if (e.payload) {
-      originalWidth = document.body.clientWidth;
-    } else {
+    if (!e.payload) {
       const input = document.getElementById('url-input')! as HTMLInputElement;
       input.blur();
     }
@@ -63,6 +60,9 @@ export function BrowserInput({}: {}) {
           if (value() !== payload.params[0]) {
             updateValue(payload.params[0]);
           }
+          console.log(payload.params);
+
+          WebviewWindow.getByLabel(browserBar.label.replace(/_bar/, ''))?.setTitle(payload.params[1]);
           break;
         case '__browser_focus_address':
           handleSelectUrl();

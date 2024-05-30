@@ -25,9 +25,9 @@ export const createBrowser = () => {
     url: '/',
     width: 800,
     height: 800,
+    title: '',
     decorations: true,
-    alwaysOnTop: true,
-    hiddenTitle: true
+    alwaysOnTop: true
   });
 
   browserBar.once(TauriEvent.WINDOW_CREATED, async function (e) {
