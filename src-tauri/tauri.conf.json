@@ -30,6 +30,7 @@
     "windows": [
       {
         "title": "悬浮浏览器",
+        "url": "/main",
         "resizable": true,
         "center": true,
         "width": 150,

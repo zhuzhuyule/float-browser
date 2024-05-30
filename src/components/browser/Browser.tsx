@@ -13,7 +13,7 @@ import { CONST_BROWSER_HEIGHT } from '../../constants';
 import { BrowserInput } from './BrowserInput';
 import { useShortCut, handleBack, handleRefresh, handleExpand, handleToggleCache, isExpand } from './actions';
 
-export function Browser() {
+export default function Browser() {
   let justFocused = true;
   let lastRunTime = Date.now();
   let lastFocusedTime = Date.now();

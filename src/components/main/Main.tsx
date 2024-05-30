@@ -5,7 +5,7 @@ import { onCleanup } from 'solid-js';
 import { createBrowser } from './utils/browser';
 import { registerShortCut, unRegisterShortCut } from './utils/shortCut';
 
-export function Main() {
+export default function Main() {
   registerShortCut();
   onCleanup(unRegisterShortCut);
 

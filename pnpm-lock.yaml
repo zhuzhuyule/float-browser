@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@solidjs/router':
+        specifier: ^0.13.4
+        version: 0.13.4(solid-js@1.8.17)
       '@suid/icons-material':
         specifier: ^0.7.0
         version: 0.7.0(solid-js@1.8.17)
@@ -21,7 +24,7 @@ importers:
         specifier: ^1
         version: 1.5.4
       solid-js:
-        specifier: ^1.7.8
+        specifier: ^1.8.17
         version: 1.8.17
     devDependencies:
       '@tauri-apps/cli':
@@ -403,6 +406,11 @@ packages:
     resolution: {integrity: sha512-TGGO7v7qOq4CYmSBVEYpI1Y5xDuCEnbVC5Vth8mOsW0gDSzxNrVERPc790IGHsrT2dQSimgMr9Ub3Y1Jci5/8w==}
     cpu: [x64]
     os: [win32]
+
+  '@solidjs/router@0.13.4':
+    resolution: {integrity: sha512-UvL/8TkP3ExE/Z5KDs0wdqesWasISsRTrrredcTbxQx/eNdRXr8BXFsa3GV2f6VSQVjbukWG5cRAcIzV76nl/g==}
+    peerDependencies:
+      solid-js: ^1.8.6
 
   '@suid/base@0.9.0':
     resolution: {integrity: sha512-uj6kYkPB2/79iKJQSIKrSqxA0H0/1vcxxsyclHRMdU/RL3FVGUfasmAMJR7E6YVLi78A+fsabBKeu/yQSrr/Hg==}
@@ -1266,6 +1274,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.17.2':
     optional: true
+
+  '@solidjs/router@0.13.4(solid-js@1.8.17)':
+    dependencies:
+      solid-js: 1.8.17
 
   '@suid/base@0.9.0(solid-js@1.8.17)':
     dependencies:

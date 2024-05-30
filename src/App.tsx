@@ -1,15 +1,23 @@
-import { appWindow } from '@tauri-apps/api/window';
-import { Browser } from './components/browser/Browser';
-import { Main } from './components/main/Main';
+import { lazy } from 'solid-js';
+import { Router } from '@solidjs/router';
 
 export default function App() {
-  if (appWindow.label === 'main') {
-    return <Main />;
-  }
-
-  if (appWindow.label.endsWith('_bar')) {
-    return <Browser />;
-  }
-
-  return null;
+  return (
+    <Router>
+      {[
+        {
+          path: '/main',
+          component: lazy(() => import('./components/main/Main'))
+        },
+        {
+          path: '/browser-bar',
+          component: lazy(() => import('./components/browser/Browser'))
+        },
+        {
+          path: '*empty',
+          component: () => ''
+        }
+      ]}
+    </Router>
+  );
 }

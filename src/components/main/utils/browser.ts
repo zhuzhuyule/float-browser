@@ -10,7 +10,7 @@ export const createBrowser = () => {
   setBrowsers({ ...browsers(), [key]: true });
 
   const browserBar = new WebviewWindow(`${key}_bar`, {
-    url: '/',
+    url: '/browser-bar',
     width: 800,
     height: 140,
     decorations: false,
