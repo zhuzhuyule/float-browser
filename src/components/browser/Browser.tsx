@@ -35,9 +35,10 @@ export default function Browser() {
           handleToggleCache();
           break;
         case '__browser_request':
-          const urlInfo = parseURL(payload.params[0].page);
-          store[urlInfo.hostname].set(payload.params[0].url, payload.params[0]);
-          store[urlInfo.hostname].save();
+          const pageInfo = parseURL(payload.params[0].page);
+          const urlInfo = parseURL(payload.params[0].url);
+          store[pageInfo.hostname].set(urlInfo.noSearch, payload.params[0]);
+          store[pageInfo.hostname].save();
           break;
       }
     })

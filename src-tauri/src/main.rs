@@ -10,6 +10,7 @@ fn main() {
         .plugin(preload::PreloadPlugin::new())
         .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
+            invokes::get_browser_url,
             invokes::browser_execute_action,
             invokes::browser_navigate,
             invokes::browser_update_cache,

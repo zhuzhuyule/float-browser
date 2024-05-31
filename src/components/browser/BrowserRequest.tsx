@@ -1,27 +1,22 @@
 import { createSignal } from 'solid-js';
 
-import DragIndicatorIcon from '@suid/icons-material/DragIndicator';
-import KeyboardDoubleArrowDownIcon from '@suid/icons-material/KeyboardDoubleArrowDown';
-import KeyboardDoubleArrowUpIcon from '@suid/icons-material/KeyboardDoubleArrowUp';
-import RefreshIcon from '@suid/icons-material/Refresh';
-import WestIcon from '@suid/icons-material/West';
-import { Box, IconButton } from '@suid/material';
+import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography } from '@suid/material';
 import { listen, once } from '@tauri-apps/api/event';
 
-import { appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
-import { CONST_BROWSER_HEIGHT } from '../../constants';
-import { BrowserInput } from './BrowserInput';
-import { useShortCut, handleBack, handleRefresh, handleExpand, handleToggleCache, isExpand } from './actions';
-import { store } from '../../util/store';
-import { parseURL } from '../../util';
+import { appWindow } from '@tauri-apps/api/window';
 import { effect } from 'solid-js/web';
-
-const [title, setTitle] = createSignal('');
-export { title };
+import { parseURL } from '../../util';
+import { store } from '../../util/store';
+import { invoke } from '@tauri-apps/api/tauri';
 
 export default function BrowserRequest() {
+  const [browserInfo, setBrowserInfo] = createSignal({ url: '', title: '', flag: false });
   const [list, setList] = createSignal<any[]>([]);
   const [urlInfo, setUrlInfo] = createSignal<ReturnType<typeof parseURL>>();
+
+  invoke<{ url: string; title: string }>('get_browser_url', { label: appWindow.label.replace(/_request$/, '') }).then(e => {
+    setBrowserInfo(pre => ({ url: e.url, title: e.title, flag: !pre.flag }));
+  });
 
   const ls: Promise<() => void>[] = [];
   ls.push(
@@ -29,37 +24,29 @@ export default function BrowserRequest() {
       const payload = JSON.parse(e.payload);
       switch (payload.command) {
         case '__browser_loaded':
-          setUrlInfo(parseURL(payload.params[0]));
-          const title = payload.params[1];
-          setTitle(title);
-          appWindow.setTitle(title);
+          setBrowserInfo(pre => ({ url: payload.params[0], title: payload.params[1], flag: !pre.flag }));
           break;
         case '__browser_request':
-          const urlInfo = parseURL(payload.params[0].page);
           setTimeout(() => {
-            store[urlInfo.hostname].entries().then(list => {
-              setList(list.map(e => e[1]));
-            });
+            setBrowserInfo(pre => ({ ...pre, flag: !pre.flag }));
           }, 200);
           break;
       }
     })
   );
-  once<string>('__request-info', e => {
-    setUrlInfo(parseURL(e.payload));
-  });
 
   effect(() => {
-    if (urlInfo()) {
-      store[urlInfo()!.hostname].entries().then(list => {
-        setList(
-          list
-            .map(e => e[1])
-            .filter(e => e.url.includes(urlInfo()!.pathname))
-            .sort((a, b) => a.i - b.i)
-        );
-      });
-    }
+    const currentUrlInfo = parseURL(browserInfo().url);
+    appWindow.setTitle(browserInfo().title);
+
+    store[currentUrlInfo.hostname].entries().then(list => {
+      setList(
+        list
+          .map(e => e[1])
+          .filter(e => parseURL(e.page).noSearch === currentUrlInfo.noSearch)
+          .sort((a, b) => a.url - b.url)
+      );
+    });
   });
 
   return (
@@ -68,16 +55,38 @@ export default function BrowserRequest() {
         position: 'relative',
         width: '100vw',
         height: '100vh',
-        overflow: 'hidden',
+        overflow: 'auto',
         borderRadius: '4px'
       }}
     >
-      {list().map((e, i) => (
-        <Box sx={{ display: 'felx' }}>
-          <Box>{e.url}</Box>
-          {/* <Box>{e.response}</Box> */}
-        </Box>
-      ))}
+      <List>
+        {list().map((e, i) => {
+          const info = parseURL(e.url, urlInfo()?.origin);
+          if (!e) {
+            return '';
+          }
+          return (
+            <ListItem disablePadding>
+              <ListItemButton sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+                <Typography variant="subtitle1" color="grey" sx={{}}>
+                  <Typography variant="subtitle2" color="#0fa52b" component={'span'}>
+                    [{e.method}]
+                  </Typography>
+                  {decodeURIComponent(info.pathname)}
+                  <Typography variant="subtitle2" color={/2\d+/.test(e.status) ? '#0fa52b' : '#d82a2a'} component={'span'}>
+                    [{e.status}]
+                  </Typography>
+                </Typography>
+                <Typography variant="subtitle2" color="#33333366" sx={{}}>
+                  {decodeURIComponent(info.search)}
+                </Typography>
+              </ListItemButton>
+              {e.responseHeader['content-type'].replace(/application\/([^;]+).*$/, '$1')}
+              {/* {e.type} */}
+            </ListItem>
+          );
+        })}
+      </List>
     </Box>
   );
 }

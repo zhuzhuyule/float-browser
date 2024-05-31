@@ -1,14 +1,31 @@
+use serde::Serialize;
 use tauri::Manager;
 
 // Learn more about Tauri commands at https://tauri.app/v1/gulabeles/features/command
 #[tauri::command]
 pub fn browser_navigate(window: tauri::Window, label: String, url: String) {
-    println!("{} {}", label, url);
     let browser = window.get_window(label.as_str()).unwrap();
 
     browser
         .eval(&format!(r#"window.location.href="{}""#, url))
         .expect("navigate failed");
+}
+
+#[derive(Serialize)]
+pub struct GetBrowserUrl {
+    url: String,
+    title: String,
+}
+
+#[tauri::command]
+pub fn get_browser_url(window: tauri::Window, label: String) -> GetBrowserUrl {
+    let browser = window.get_window(label.as_str()).unwrap();
+    println!("{} {}", browser.url(), browser.title().unwrap());
+
+    return GetBrowserUrl {
+        url: browser.url().to_string(),
+        title: browser.title().unwrap(),
+    };
 }
 
 #[tauri::command]
