@@ -1,5 +1,3 @@
-import { createSignal } from 'solid-js';
-
 import DragIndicatorIcon from '@suid/icons-material/DragIndicator';
 import KeyboardDoubleArrowDownIcon from '@suid/icons-material/KeyboardDoubleArrowDown';
 import KeyboardDoubleArrowUpIcon from '@suid/icons-material/KeyboardDoubleArrowUp';
@@ -10,10 +8,10 @@ import { listen } from '@tauri-apps/api/event';
 
 import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../constants';
-import { BrowserInput } from './BrowserInput';
-import { useShortCut, handleBack, handleRefresh, handleExpand, handleToggleCache, isExpand } from './actions';
-import { store } from '../../util/store';
 import { parseURL } from '../../util';
+import { store } from '../../util/store';
+import { BrowserInput } from './BrowserInput';
+import { handleBack, handleExpand, handleRefresh, handleToggleCache, isExpand, useShortCut } from './actions';
 
 export default function Browser() {
   let justFocused = true;

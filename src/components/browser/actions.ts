@@ -87,16 +87,17 @@ export function handleRefresh() {
 }
 
 export async function handleShowRequest() {
-  const browserRequest = new WebviewWindow(browserBar.label.replace(/_bar/, '_request'), {
-    url: '/browser-request',
-    width: 800,
-    height: 800,
-    title: await appWindow.title(),
-    decorations: true
-  });
-  setTimeout(() => {
-    browserRequest.emit('__request-info', value());
-  }, 500);
+  const label = browserBar.label.replace(/_bar/, '_request');
+  const browserRequest =
+    WebviewWindow.getByLabel(label) ||
+    new WebviewWindow(label, {
+      url: '/browser-request',
+      width: 800,
+      height: 800,
+      title: await appWindow.title(),
+      decorations: true
+    });
+  browserRequest.setFocus();
 }
 
 export function handleBack() {
