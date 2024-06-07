@@ -7,13 +7,13 @@ import { Box, IconButton } from '@suid/material';
 import { listen } from '@tauri-apps/api/event';
 
 import { appWindow as browserBar } from '@tauri-apps/api/window';
-import { CONST_BROWSER_HEIGHT } from '../../constants';
-import { parseURL } from '../../util';
-import { store } from '../../util/store';
+import { CONST_BROWSER_HEIGHT } from '../../../constants';
+import { parseURL } from '../../../util';
+import { store } from '../../../util/store';
 import { BrowserInput } from './BrowserInput';
 import { handleBack, handleExpand, handleRefresh, handleToggleCache, isExpand, useShortCut } from './actions';
 
-export default function Browser() {
+export default function BrowserBar() {
   let justFocused = true;
   let lastRunTime = Date.now();
   let lastFocusedTime = Date.now();

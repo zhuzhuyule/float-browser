@@ -11,11 +11,11 @@ export default function App() {
         },
         {
           path: '/browser-bar',
-          component: lazy(() => import('./components/browser/Browser'))
+          component: lazy(() => import('./components/browser/bar/BrowserBar'))
         },
         {
           path: '/browser-request',
-          component: lazy(() => import('./components/browser/BrowserRequest'))
+          component: lazy(() => import('./components/browser/network/Network'))
         },
         {
           path: '*empty',

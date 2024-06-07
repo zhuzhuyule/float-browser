@@ -6,17 +6,17 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
 import { appWindow } from '@tauri-apps/api/window';
 import { effect } from 'solid-js/web';
-import { parseURL } from '../../util';
-import { store } from '../../util/store';
+import { parseURL } from '../../../util';
+import { store } from '../../../util/store';
 import { JSONEditor } from './JSONEditor';
 
-export default function BrowserRequest() {
+export default function Network() {
   const [browserInfo, setBrowserInfo] = createSignal({ url: '', title: '', hostname: '' });
   const [list, setList] = createSignal<any[]>([]);
   const [activeIndex, setActiveIndex] = createSignal<number>();
 
   invoke<{ url: string; title: string }>('get_browser_url', { label: appWindow.label.replace(/_request$/, '') }).then(e => {
-    setBrowserInfo(pre => ({ url: e.url, title: e.title, hostname: parseURL(e.url).hostname }));
+    setBrowserInfo({ url: e.url, title: e.title, hostname: parseURL(e.url).hostname });
   });
 
   const ls: Promise<() => void>[] = [];
@@ -25,7 +25,7 @@ export default function BrowserRequest() {
       const payload = JSON.parse(e.payload);
       switch (payload.command) {
         case '__browser_loaded':
-          setBrowserInfo(pre => ({ url: payload.params[0], title: payload.params[1], hostname: parseURL(payload.params[0]).hostname }));
+          setBrowserInfo({ url: payload.params[0], title: payload.params[1], hostname: parseURL(payload.params[0]).hostname });
           break;
       }
     })

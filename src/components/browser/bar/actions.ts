@@ -4,7 +4,7 @@ import { platform } from '@tauri-apps/api/os';
 import { invoke } from '@tauri-apps/api/tauri';
 
 import { PhysicalPosition, PhysicalSize, WebviewWindow, appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
-import { CONST_BROWSER_HEIGHT } from '../../constants';
+import { CONST_BROWSER_HEIGHT } from '../../../constants';
 import { value } from './BrowserInput';
 
 const [isExpand, setIsExpand] = createSignal(true);

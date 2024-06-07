@@ -5,10 +5,10 @@ import { invoke } from '@tauri-apps/api/tauri';
 
 import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow, appWindow, appWindow as browserBar } from '@tauri-apps/api/window';
-import { CONST_BROWSER_HEIGHT } from '../../constants';
+import { CONST_BROWSER_HEIGHT } from '../../../constants';
 import { handleResizeBar, handleSelectUrl, isExpand } from './actions';
 import { effect } from 'solid-js/web';
-import { debounce } from '../../util';
+import { debounce } from '../../../util';
 
 const [value, setValue] = createSignal(localStorage.getItem('browser_url') || '');
 export { value };
@@ -19,9 +19,7 @@ export function BrowserInput({}: {}) {
   let lastestUrl = '';
   const [isShowingSuggesting, setIsShowingSuggesting] = createSignal(false);
   const [selectIndex, setSelectIndex] = createSignal(0);
-
   const [history, setHistory] = createSignal<string[]>(JSON.parse(localStorage.getItem('history_urls') || '[]') || []);
-
   const [autoWidthStatus, setAutoWidthStatus] = createSignal({ bar: false, input: false });
 
   let handle = 0;
