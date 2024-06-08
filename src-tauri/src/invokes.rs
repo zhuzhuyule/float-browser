@@ -20,7 +20,6 @@ pub struct GetBrowserUrl {
 #[tauri::command]
 pub fn get_browser_url(window: tauri::Window, label: String) -> GetBrowserUrl {
     let browser = window.get_window(label.as_str()).unwrap();
-    println!("{} {}", browser.url(), browser.title().unwrap());
 
     return GetBrowserUrl {
         url: browser.url().to_string(),
