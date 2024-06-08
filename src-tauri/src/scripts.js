@@ -65,14 +65,13 @@
         }
       });
 
-      browserAction('__browser_request', {
-        i: index,
-        type: 'fetch',
+      browserAction('__browser_request_update', {
         url,
         method,
-        page: location.href,
+        page: pageUrl(),
+        status: response.status,
         response: await clonedResponse.text(),
-        responseHeader: headers
+        header: headers
       });
       return response;
     };
@@ -89,7 +88,15 @@
       const index = count;
       const url = this.responseURL;
       const method = this._method; // 获取请求类型，默认为 GET
+      const pageInfo = new URL(location.href);
+      const urlInfo = new URL(url);
+
       const cacheKey = location.href + '|||' + url; // 使用当前页面 URL 和请求 URL 作为缓存键值
+      browserCall('__get_cache_request', pageInfo.host, `${urlInfo.host}${urlInfo.pathname}`, pageUrl()).then(e => {
+        try {
+          console.log(pageInfo.host, `${urlInfo.host}${urlInfo.pathname}`, JSON.parse(e));
+        } catch (error) {}
+      });
       if (useCache && (cacheList.size === 0 || cacheList.has(url)) && requestCache.has(cacheKey)) {
         const cachedResponse = requestCache.get(cacheKey);
         setTimeout(() => {
@@ -100,6 +107,14 @@
           Object.defineProperty(this, 'responseType', { value: '', writable: false });
           Object.defineProperty(this, 'responseXML', { value: null, writable: false });
           Object.defineProperty(this, 'getAllResponseHeaders', { value: () => formatHeaders({}), writable: false });
+          browserAction('__browser_request', {
+            url,
+            method,
+            page: pageUrl(),
+            status: this.status,
+            response: this.responseText,
+            header: parseHeaders(this.getAllResponseHeaders())
+          });
           const event = new Event('readystatechange');
           this.dispatchEvent(event);
           this.onloadend();
@@ -112,17 +127,13 @@
           requestCache.set(cacheKey, this.responseText);
           localStorage.setItem('requestCache', JSON.stringify(Array.from(requestCache.entries())));
 
-          browserAction('__browser_request', {
-            i: index,
-            type: 'xhr',
+          browserAction('__browser_request_update', {
             url,
             method,
-            page: location.href,
+            page: pageUrl(),
             status: this.status,
             response: this.responseText,
-            responseType: this.responseType,
-            responseXML: this.responseXML,
-            responseHeader: parseHeaders(this.getAllResponseHeaders())
+            header: parseHeaders(this.getAllResponseHeaders())
           });
         }
       });
@@ -218,7 +229,7 @@
 
   function browserCall(command, ...params) {
     const time = Date.now();
-    const key = `__browser_call_key_${time}`;
+    const key = `__browser_call_key_${time}_${count}`;
     return new Promise(function (resolve) {
       window.__float_browser_event_target.addEventListener(key, event => resolve(event.detail), { once: true });
       window.__TAURI_INVOKE__('__initialized', {
@@ -238,6 +249,11 @@
         params
       })
     });
+  }
+
+  function pageUrl() {
+    const info = new URL(location.href);
+    return `${info.origin}${info.pathname}`;
   }
 
   if (/^browser_\d+$/.test(window.__TAURI_METADATA__.__currentWindow.label) && !window.__has_initialized) {

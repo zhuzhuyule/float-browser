@@ -8,10 +8,13 @@ import { listen } from '@tauri-apps/api/event';
 
 import { appWindow as browserBar } from '@tauri-apps/api/window';
 import { CONST_BROWSER_HEIGHT } from '../../../constants';
-import { parseURL } from '../../../util';
+import { debounce, parseURL } from '../../../util';
 import { store } from '../../../util/store';
 import { BrowserInput } from './BrowserInput';
 import { handleBack, handleExpand, handleRefresh, handleToggleCache, isExpand, useShortCut } from './actions';
+
+import pick from 'lodash-es/pick';
+import merge from 'lodash-es/merge';
 
 export default function BrowserBar() {
   let justFocused = true;
@@ -23,7 +26,7 @@ export default function BrowserBar() {
 
   const ls: Promise<() => void>[] = [];
   ls.push(
-    listen<string>('__browser__command', e => {
+    listen<string>('__browser__command', async e => {
       const payload = JSON.parse(e.payload);
       switch (payload.command) {
         case '__browser_toggle_expand':
@@ -32,11 +35,33 @@ export default function BrowserBar() {
         case '__browser_toggle_cache':
           handleToggleCache();
           break;
-        case '__browser_request':
+        case '__browser_request_update':
+          const request = payload.params[0] as IRequest;
           const pageInfo = parseURL(payload.params[0].page);
           const urlInfo = parseURL(payload.params[0].url);
-          store[pageInfo.hostname].set(urlInfo.noSearch, payload.params[0]);
-          store[pageInfo.hostname].save();
+
+          const json = await store[pageInfo.host].get<IRequestCache>(urlInfo.noSearch);
+          const urls = (await store[pageInfo.host].get<string[]>('urls')) || [];
+          if (!urls.includes(request.page)) {
+            urls.push(request.page);
+          }
+          let value = merge(json || ({} as IRequestCache), {
+            method: { [request.method]: { [request.status]: { _: pick(request, ['response', 'header']) } } }
+          });
+          const isExist = value.pages?.find(item => urls[item.k] === request.page);
+          if (!isExist) {
+            value = { ...value, pages: [...(value.pages || []), { k: urls.findIndex(url => url === request.page), path: `${request.method}.${request.status}._` }] };
+          }
+          store[pageInfo.host].set('urls', urls);
+          store[pageInfo.host].set(urlInfo.noSearch, value);
+
+          debounce(
+            () => {
+              store[pageInfo.host].save();
+            },
+            500,
+            pageInfo.host
+          )();
           break;
       }
     })

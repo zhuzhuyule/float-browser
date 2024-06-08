@@ -1,10 +1,15 @@
-let timeout: ReturnType<typeof setTimeout> | null;
-export function debounce<T extends (...args: any[]) => void>(func: T, wait = 100): (...args: Parameters<T>) => void {
+let keys: Record<string, ReturnType<typeof setTimeout>> = {
+  default: 0
+};
+export function debounce<T extends (...args: any[]) => void>(func: T, wait = 100, key = 'default'): (...args: Parameters<T>) => void {
   return function (...args: Parameters<T>): void {
-    if (timeout) {
-      clearTimeout(timeout);
+    if (keys[key]) {
+      clearTimeout(keys[key]);
     }
-    timeout = setTimeout(() => func(...args), wait);
+    keys[key] = setTimeout(() => {
+      keys[key] = 0;
+      func(...args);
+    }, wait);
   };
 }
 
@@ -15,11 +20,10 @@ export function parseURL(pageUrl: string, origin = 'empty://empty.com') {
 
   return {
     href: url.href,
-    noSearch: `${url.origin}${url.pathname}`,
+    noSearch: `${url.host}${url.pathname}`,
     protocol: url.protocol,
-    hostname: url.hostname,
+    host: url.host,
     port: url.port,
-    origin: url.origin,
     pathname: url.pathname,
     search: url.search,
     hash: url.hash,

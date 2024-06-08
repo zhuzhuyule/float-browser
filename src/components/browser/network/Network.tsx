@@ -11,12 +11,12 @@ import { store } from '../../../util/store';
 import { JSONEditor } from './JSONEditor';
 
 export default function Network() {
-  const [browserInfo, setBrowserInfo] = createSignal({ url: '', title: '', hostname: '' });
+  const [browserInfo, setBrowserInfo] = createSignal({ url: '', title: '', host: '' });
   const [list, setList] = createSignal<any[]>([]);
   const [activeIndex, setActiveIndex] = createSignal<number>();
 
   invoke<{ url: string; title: string }>('get_browser_url', { label: appWindow.label.replace(/_request$/, '') }).then(e => {
-    setBrowserInfo({ url: e.url, title: e.title, hostname: parseURL(e.url).hostname });
+    setBrowserInfo({ url: e.url, title: e.title, host: parseURL(e.url).host });
   });
 
   const ls: Promise<() => void>[] = [];
@@ -25,15 +25,16 @@ export default function Network() {
       const payload = JSON.parse(e.payload);
       switch (payload.command) {
         case '__browser_loaded':
-          setBrowserInfo({ url: payload.params[0], title: payload.params[1], hostname: parseURL(payload.params[0]).hostname });
+          setBrowserInfo({ url: payload.params[0], title: payload.params[1], host: parseURL(payload.params[0]).host });
           break;
       }
     })
   );
 
   function updateList(urlInfo: ReturnType<typeof parseURL>) {
-    store[urlInfo.hostname].entries<{ page: string }>().then(list => {
-      setList(list.map(e => e[1]).filter(e => parseURL(e.page).noSearch === urlInfo.noSearch));
+    store[urlInfo.host].entries<{ page: string }>().then(list => {
+      console.log(list[0]);
+      setList(list.map(e => e[1]).filter(e => parseURL(e.page).pathname === urlInfo.pathname));
     });
   }
 
@@ -42,18 +43,18 @@ export default function Network() {
     const currentUrlInfo = parseURL(browserInfo().url);
     appWindow.setTitle(browserInfo().title);
 
-    if (preHostname !== currentUrlInfo.hostname) {
+    if (preHostname !== currentUrlInfo.host) {
       unListen && unListen();
       if (!list().length) {
         updateList(currentUrlInfo);
       }
-      store[currentUrlInfo.hostname]
+      store[currentUrlInfo.host]
         .onChange((key, value) => {
           updateList(currentUrlInfo);
         })
         .then(fn => (unListen = fn));
     }
-    return currentUrlInfo.hostname;
+    return currentUrlInfo.host;
   });
 
   return (
@@ -67,11 +68,11 @@ export default function Network() {
       }}
     >
       <List>
-        {list().map((e, i) => {
-          const info = parseURL(e.url, browserInfo()?.url);
-          if (!e) return '';
+        {list().map((item, i) => {
+          const info = parseURL(item.url, browserInfo()?.url);
+          if (!item) return '';
 
-          const ty = e.responseHeader['content-type'].replace(/application\/([^;]+).*$/, '$1');
+          const ty = item?.header['content-type']?.replace(/application\/([^;]+).*$/, '$1') || '';
           const isActive = i === activeIndex();
           return (
             <ListItem disablePadding sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', background: isActive ? '#33333322' : 'white' }}>
@@ -88,11 +89,11 @@ export default function Network() {
                 >
                   <Typography variant="subtitle1" color="grey" sx={{}}>
                     <Typography variant="subtitle2" color="#0fa52b" component={'span'}>
-                      [{e.method}]
+                      [{item.method}]
                     </Typography>
                     {decodeURIComponent(info.pathname)}
-                    <Typography variant="subtitle2" color={/2\d+/.test(e.status) ? '#0fa52b' : '#d82a2a'} component={'span'}>
-                      [{e.status}]
+                    <Typography variant="subtitle2" color={/2\d+/.test(item.status) ? '#0fa52b' : '#d82a2a'} component={'span'}>
+                      [{item.status}]
                     </Typography>
                   </Typography>
                   <Typography variant="subtitle2" color="#33333366" sx={{}}>
@@ -103,10 +104,10 @@ export default function Network() {
               </Box>
               {i === activeIndex() && ty.toLowerCase() === 'json' && (
                 <JSONEditor
-                  json={e.response}
+                  json={item.response}
                   onCancel={() => setActiveIndex()}
                   onSave={text => {
-                    // store[parseURL(browserInfo().url).hostname].set('');
+                    // store[parseURL(browserInfo().url).host].set('');
                   }}
                 />
               )}
