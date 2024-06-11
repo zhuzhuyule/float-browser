@@ -46,7 +46,8 @@ export const APIItem = (props: { index: number; item: { url: string; method: str
       </Box>
       {props.active && (
         <JSONEditor
-          json={res.response || {}}
+          value={res.response || {}}
+          isJson={ty.toLowerCase() === 'json'}
           onCancel={() => props.onClick(null)}
           onSave={text => {
             // store[parseURL(browserInfo().url).host].set('');

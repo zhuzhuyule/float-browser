@@ -47,6 +47,9 @@
     window.fetch = async function (...args) {
       let url = getApiURL(args[0]);
       let method = args[1]?.method || 'GET';
+      const pageInfo = new URL(location.href);
+      const urlInfo = new URL(url);
+
       if (args[0] instanceof Request) {
         url = getApiURL(args[0].url);
         method = args[0].method;
@@ -71,25 +74,32 @@
         } catch {}
       }
 
-      const response = await originalFetch.apply(this, args);
+      console.log('----------->', 'request', url, method);
 
-      const headers = {};
-      const clonedResponse = response.clone();
-      clonedResponse.headers.forEach((value, key) => {
-        if (excludeHeaders.includes(key.toLowerCase()) || key.toLowerCase().startsWith('x')) {
-          headers[key] = value;
+      return originalFetch.apply(this, args).then(response => {
+        const headers = {};
+        try {
+          const clonedResponse = response.clone();
+          clonedResponse.headers.forEach((value, key) => {
+            if (excludeHeaders.includes(key.toLowerCase()) || key.toLowerCase().startsWith('x')) {
+              headers[key] = value;
+            }
+          });
+          clonedResponse.text().then(text => {
+            browserAction('__browser_request_update', {
+              url,
+              method,
+              page: pageUrl(),
+              status: response.status,
+              response: text,
+              header: headers
+            });
+          });
+        } catch (e) {
+          console.log('----------->', e);
         }
+        return response;
       });
-
-      browserAction('__browser_request_update', {
-        url,
-        method,
-        page: pageUrl(),
-        status: response.status,
-        response: await clonedResponse.text(),
-        header: headers
-      });
-      return response;
     };
 
     const originalXhrOpen = XMLHttpRequest.prototype.open;
@@ -254,6 +264,17 @@
     window.__float_browser_event_target = new EventTarget();
     window.__float_browser_action = browserAction;
     window.__float_browser_call = browserCall;
+
+    if (navigator.sendBeacon) {
+      // 检查是否支持 Beacon API，如果支持则替换为其他方式
+      navigator.sendBeacon1 = function (url, data) {
+        // 使用 fetch 作为替代
+        fetch(url, {
+          method: 'POST',
+          body: data
+        });
+      };
+    }
 
     initWatch();
     addShortKey();

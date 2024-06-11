@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 
-import { Box, List } from '@suid/material';
+import { Box, Button, List, Typography } from '@suid/material';
 import { listen } from '@tauri-apps/api/event';
 
 import { invoke } from '@tauri-apps/api/tauri';
@@ -38,7 +38,9 @@ export default function Network() {
           setList(
             list
               .flatMap(([key, value]) => {
-                const item = value?.pages?.find(item => parseURL(urls[item.k]).noSearch === urlInfo.noSearch);
+                const item = value?.pages?.find(page => {
+                  return parseURL(urls[page.k]).noSearch === urlInfo.noSearch;
+                });
                 if (item) {
                   return Object.entries(value.method).map(([method, status]) => {
                     return {
@@ -59,25 +61,21 @@ export default function Network() {
   }
 
   let unListen: undefined | (() => void);
-  effect(preHostname => {
-    if (browserInfo().url) {
+  effect(preUrl => {
+    if (browserInfo().url && browserInfo().url !== preUrl) {
       const currentUrlInfo = parseURL(browserInfo().url);
       appWindow.setTitle(browserInfo().title);
 
-      if (preHostname !== currentUrlInfo.host) {
-        unListen && unListen();
-        unListen = undefined;
-        if (!list().length) {
+      unListen && unListen();
+      unListen = undefined;
+      updateList(currentUrlInfo);
+      store[currentUrlInfo.host]
+        .onChange((key, value) => {
           updateList(currentUrlInfo);
-        }
-        store[currentUrlInfo.host]
-          .onChange((key, value) => {
-            updateList(currentUrlInfo);
-          })
-          .then(fn => (unListen = fn));
-      }
-      return currentUrlInfo.host;
+        })
+        .then(fn => (unListen = fn));
     }
+    return browserInfo().url;
   });
 
   return (
@@ -90,6 +88,19 @@ export default function Network() {
         borderRadius: '4px'
       }}
     >
+      <Box sx={{ display: 'flex', alignItems: 'center', padding: '4px 8px' }}>
+        <Typography variant="subtitle2" color="#0fa52b" component={'span'}>
+          [类型]
+        </Typography>
+        PathName
+        <Typography variant="subtitle2" color="#0fa52b" component={'span'}>
+          [status]
+        </Typography>
+        <Box flex="1">
+          <Button onClick={() => store[parseURL(browserInfo().url).host].clear()}>清除缓存</Button>
+        </Box>
+        <Box>返回类型</Box>
+      </Box>
       <List>
         {list().map((item, i) => {
           if (!item) return '';

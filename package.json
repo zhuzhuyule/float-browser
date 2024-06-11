@@ -4,6 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "local": "tauri dev",
     "start": "vite",
     "dev": "vite",
     "build": "vite build",

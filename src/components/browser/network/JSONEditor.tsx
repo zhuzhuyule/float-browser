@@ -4,27 +4,38 @@ import 'jsoneditor/dist/jsoneditor.css';
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { Box, Button } from '@suid/material';
 
-export const JSONEditor = ({ json, onSave, onCancel }: { json?: Object | string; onCancel?: () => void; onSave?: (text: string) => void }) => {
+export const JSONEditor = ({ value, onSave, onCancel, isJson = true }: { isJson?: boolean; value?: Object | string; onCancel?: () => void; onSave?: (text: string) => void }) => {
   const [text, setText] = createSignal('');
   let ref: HTMLDivElement;
 
   let jsoneditor: Editor;
   onMount(() => {
-    jsoneditor = new Editor(ref, {
-      modes: ['text', 'code', 'tree', 'form', 'view'],
-      mode: 'form',
-      mainMenuBar: true,
-      navigationBar: false,
-      onChangeText: text => {
-        setText(text);
-      },
-      onModeChange: (newMode, oldMode) => {
-        if (['tree', 'form', 'view'].includes(newMode)) {
-          jsoneditor.expandAll();
-        }
-      }
-    });
-    typeof json === 'string' ? jsoneditor.setText(json) : jsoneditor.set(json || {});
+    jsoneditor = isJson
+      ? new Editor(ref, {
+          modes: ['text', 'code', 'tree', 'form', 'view'],
+          mode: 'form',
+          mainMenuBar: true,
+          navigationBar: false,
+          onChangeText: text => {
+            setText(text);
+          },
+          onModeChange: (newMode, oldMode) => {
+            if (['tree', 'form', 'view'].includes(newMode)) {
+              jsoneditor.expandAll();
+            }
+          }
+        })
+      : new Editor(ref, {
+          modes: ['text', 'code'],
+          mode: 'code',
+          mainMenuBar: false,
+          navigationBar: false,
+          onValidate: () => [],
+          onChangeText: text => {
+            setText(text);
+          }
+        });
+    typeof value === 'string' ? jsoneditor.setText(value) : jsoneditor.set(value || {});
   });
 
   onCleanup(() => {
