@@ -33,10 +33,13 @@ export default function BrowserBar() {
           handleExpand();
           break;
         case '__browser_toggle_cache':
-          handleToggleCache();
+          handleToggleCache(payload.params[0]);
           break;
         case '__browser_request_update':
           const request = payload.params[0] as IRequest;
+          if (request.status == 0) {
+            break;
+          }
           const pageInfo = parseURL(payload.params[0].page);
           const urlInfo = parseURL(payload.params[0].url);
 

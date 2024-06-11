@@ -28,13 +28,13 @@ pub fn get_browser_url(window: tauri::Window, label: String) -> GetBrowserUrl {
 }
 
 #[tauri::command]
-pub fn browser_update_cache(window: tauri::Window, label: String, open: String, list: String) {
+pub fn browser_update_cache(window: tauri::Window, label: String, open: String) {
     let browser = window.get_window(label.as_str()).unwrap();
 
     browser
         .eval(&format!(
-            r#"window.setUseCache({});/*window.updateCacheList({})*/;location.reload()"#,
-            open, list
+            r#"window.setUseCache({});location.reload()"#,
+            open
         ))
         .expect("navigate failed");
 }

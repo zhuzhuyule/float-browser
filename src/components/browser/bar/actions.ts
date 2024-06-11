@@ -68,12 +68,11 @@ export function handleExpand() {
   setIsExpand(!isExpand());
 }
 
-export function handleToggleCache(isUse = !isUseingCache(), list: string[] = []) {
+export function handleToggleCache(isUse = !isUseingCache()) {
   setIsUseingCache(isUse);
   invoke('browser_update_cache', {
     label: browserBar.label.replace(/_bar/, ''),
-    open: `${isUse}`,
-    list: JSON.stringify(list)
+    open: `${isUse}`
   });
 }
 
