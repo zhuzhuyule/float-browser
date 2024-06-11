@@ -47,7 +47,7 @@ export default function Network() {
                       url: key,
                       method,
                       select: item.path,
-                      content: status
+                      status: status
                     };
                   });
                 }

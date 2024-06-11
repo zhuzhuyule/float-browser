@@ -1,21 +1,19 @@
-import { ListItem, Box, ListItemButton, Typography, Chip } from '@suid/material';
+import { ListItem, Box, ListItemButton, Typography, Chip, Button, ToggleButtonGroup, ToggleButton, Select, MenuItem } from '@suid/material';
 import { parseURL } from '../../../util';
-import { createMemo } from 'solid-js';
+import { createMemo, createSignal } from 'solid-js';
 import { JSONEditor } from './JSONEditor';
 
-export const APIItem = (props: { index: number; item: { url: string; method: string; content: Record<string, any> }; active: boolean; onClick: (index: number | null) => void }) => {
-  const active = createMemo(() => props.active);
+export const APIItem = (props: { index: number; item: { url: string; method: string; status: Record<string, any> }; active: boolean; onClick: (index: number | null) => void }) => {
+  const [text, setText] = createSignal('');
+  const api = parseURL(props.item.url);
 
-  const info = parseURL(props.item.url);
-  const statuses = Object.keys(props.item.content).sort();
+  const statuses = createMemo(() => Object.keys(props.item.status).sort());
+  const [status, setStatus] = createSignal(statuses()[0]);
 
-  const status = statuses[0];
+  const names = createMemo(() => Object.keys(props.item.status[status()]).sort());
+  const [selectName, setSelectName] = createSignal(names()[0]);
 
-  const res = props.item.content[status]._;
-
-  console.log(active(), res);
-
-  const ty = res?.header?.['content-type']?.replace(/application\/([^;]+).*$/, '$1') || '';
+  const ty = props.item.status[status()]?.[selectName()]?.header?.['content-type']?.replace(/application\/([^;]+).*$/, '$1') || '';
   return (
     <ListItem disablePadding sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', background: props.active ? '#33333322' : 'white' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', paddingRight: '12px', boxSizing: 'border-box' }}>
@@ -33,26 +31,53 @@ export const APIItem = (props: { index: number; item: { url: string; method: str
             <Typography variant="subtitle2" color="#0fa52b" component={'span'}>
               [{props.item.method}]
             </Typography>
-            {decodeURIComponent(info.pathname)}
-            <Typography variant="subtitle2" color={/2\d+/.test(status) ? '#0fa52b' : '#d82a2a'} component={'span'}>
-              [{status}]
+            {decodeURIComponent(api.pathname)}
+            <Typography variant="subtitle2" color={/2\d+/.test(status()) ? '#0fa52b' : '#d82a2a'} component={'span'}>
+              [{status()}]
             </Typography>
           </Typography>
           <Typography variant="subtitle2" color="#33333366" sx={{}}>
-            {decodeURIComponent(info.search)}
+            {decodeURIComponent(api.search)}
           </Typography>
         </ListItemButton>
         <Chip size="small" label={ty} />
       </Box>
       {props.active && (
-        <JSONEditor
-          value={res.response || {}}
-          isJson={ty.toLowerCase() === 'json'}
-          onCancel={() => props.onClick(null)}
-          onSave={text => {
-            // store[parseURL(browserInfo().url).host].set('');
-          }}
-        />
+        <>
+          <Box sx={{ display: 'flex', gap: '6px', p: '6px', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+            <Box sx={{ display: 'flex', gap: '6px' }}>
+              <ToggleButtonGroup
+                color="primary"
+                size="small"
+                value={status()}
+                exclusive
+                onChange={(event, newAlignment) => {
+                  if (newAlignment) setStatus(newAlignment);
+                }}
+              >
+                {statuses().map(status => (
+                  <ToggleButton value={status}>{status}</ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+              <Select value={selectName()} onChange={val => setSelectName(val.target.value)} size="small">
+                {names().map(name => (
+                  <MenuItem value={name}>{name === '_' ? 'default' : name}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <Box>
+              {text() && (
+                <Button variant="contained" size="small" onClick={() => {}}>
+                  修改
+                </Button>
+              )}
+              <Button variant="outlined" size="small" sx={{ ml: '6px', background: 'white' }} onClick={() => props.onClick(null)}>
+                取消
+              </Button>
+            </Box>
+          </Box>
+          <JSONEditor value={props.item.status?.[status()]?.[selectName()]?.response || {}} isJson={ty.toLowerCase() === 'json'} onChange={txt => setText(txt)} />
+        </>
       )}
     </ListItem>
   );
