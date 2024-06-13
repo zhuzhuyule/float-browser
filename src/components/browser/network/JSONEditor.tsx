@@ -1,8 +1,10 @@
-import Editor from 'jsoneditor';
+import Editor, { JSONEditorMode } from 'jsoneditor';
 import 'jsoneditor/dist/jsoneditor.css';
 
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { Box, Button } from '@suid/material';
+
+const [modal, setModal] = createSignal<JSONEditorMode>('form');
 
 export const JSONEditor = ({ value, onChange, isJson = true }: { isJson?: boolean; value?: Object | string; onChange?: (text: string) => void }) => {
   let ref: HTMLDivElement;
@@ -12,13 +14,14 @@ export const JSONEditor = ({ value, onChange, isJson = true }: { isJson?: boolea
     jsoneditor = isJson
       ? new Editor(ref, {
           modes: ['text', 'code', 'tree', 'form', 'view'],
-          mode: 'form',
+          mode: modal(),
           mainMenuBar: true,
           navigationBar: false,
           onChangeText: text => {
             onChange?.(text);
           },
           onModeChange: (newMode, oldMode) => {
+            setModal(newMode);
             if (['tree', 'form', 'view'].includes(newMode)) {
               jsoneditor.expandAll();
             }
