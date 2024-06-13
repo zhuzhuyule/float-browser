@@ -6,7 +6,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/tauri';
 import { appWindow } from '@tauri-apps/api/window';
 import { effect } from 'solid-js/web';
-import { parseURL } from '../../../util';
+import { debounce, parseURL } from '../../../util';
 import { store } from '../../../util/store';
 import { APIItem } from './APIItem';
 
@@ -68,10 +68,10 @@ export default function Network() {
 
       unListen && unListen();
       unListen = undefined;
-      updateList(currentUrlInfo);
+      debounce(updateList, 500, 'update list')(currentUrlInfo);
       store[currentUrlInfo.host]
         .onChange((key, value) => {
-          updateList(currentUrlInfo);
+          debounce(updateList, 500, 'update list')(currentUrlInfo);
         })
         .then(fn => (unListen = fn));
     }
